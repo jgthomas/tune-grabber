@@ -1,0 +1,33 @@
+# .github/workflows/build-and-lint.yml
+
+name: tune-grabber Build and Lint
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⚙️ Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🛠️ Setup Node.js 24
+        # Use the official action to set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24' # Explicitly targets the latest available Node.js 24.x version
+          cache: 'yarn' # Set the cache key specifically for Yarn
+
+      - name: 📥 Install Dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: 🔎 Run Lint Check
+        run: yarn lint
+
+      - name: 🏗️ Run Next.js Production Build
+        run: yarn build
