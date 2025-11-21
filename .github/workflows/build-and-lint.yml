@@ -1,6 +1,6 @@
 # .github/workflows/build-and-lint.yml
 
-name: tune-grabber Build and Lint
+name: Build and Lint
 
 on:
   push:
