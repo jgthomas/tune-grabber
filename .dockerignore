@@ -1,0 +1,26 @@
+# .dockerignore
+
+# 1. Standard Ignores
+.git
+.gitignore
+.dockerignore
+.vscode/
+
+# 2. Local Build Artifacts
+.next
+out
+dist
+
+# 3. Node.js/Package Manager Artifacts
+# We MUST NOT ignore .yarn/ or node_modules here, as we need to copy them 
+# in the Dockerfile for Yarn Berry or for standalone build output.
+
+# We IGNORE npm-specific logs and local cache.
+npm-debug.log*
+yarn-error.log
+yarn-debug.log*
+.npm
+
+# 4. OS/Editor Ignores
+.DS_Store
+Thumbs.db
