@@ -1,5 +1,5 @@
 # .github/workflows/build-and-lint.yml
-name: Build and Lint
+name: Build, Lint and Test
 
 on:
   push:
@@ -45,6 +45,9 @@ jobs:
 
       - name: 🧪 Run Type Check
         run: yarn type-check
+
+      - name: 🧪 Run Tests
+        run: yarn test
 
       - name: 🏗️ Run Next.js Production Build
         run: yarn build
