@@ -61,3 +61,13 @@ jobs:
             echo "- **Node Version:** 24"
             echo "- **Triggered by:** ${{ github.actor }}"
           } >> $GITHUB_STEP_SUMMARY
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: ⚙️ Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🐳 Build Docker Image
+        run: docker build -t tune-grabber:${{ github.sha }} .
