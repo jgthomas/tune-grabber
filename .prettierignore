@@ -1,0 +1,14 @@
+# Dependencies
+node_modules
+.yarn
+
+# Build outputs
+.next
+out
+build
+dist
+
+# Misc
+coverage
+.env*.local
+*.log
