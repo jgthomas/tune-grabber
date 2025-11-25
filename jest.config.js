@@ -10,9 +10,12 @@ const customJestConfig = {
   testEnvironment: 'jest-environment-jsdom',
   testMatch: ['**/__tests__/**/*.[jt]s?(x)', '**/?(*.)+(spec|test).[jt]s?(x)'],
   collectCoverageFrom: [
-    'app/**/*.{js,jsx,ts,tsx}',
-    '!app/**/*.d.ts',
-    '!app/**/*.stories.{js,jsx,ts,tsx}',
+    'src/app/**/*.{js,jsx,ts,tsx}',
+    'src/lib/**/*.{js,jsx,ts,tsx}',
+    '!src/app/**/*.d.ts',
+    '!src/app/**/*.stories.{js,jsx,ts,tsx}',
+    '!src/lib/**/*.d.ts',
+    '!src/lib/**/*.stories.{js,jsx,ts,tsx}',
     '!**/.next/**',
   ],
 };
