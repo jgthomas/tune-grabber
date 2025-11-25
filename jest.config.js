@@ -17,6 +17,8 @@ const customJestConfig = {
     '!src/lib/**/*.d.ts',
     '!src/lib/**/*.stories.{js,jsx,ts,tsx}',
     '!**/.next/**',
+    '!**/index.tsx',
+    '!**/app/layout.tsx',
   ],
 };
 
