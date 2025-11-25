@@ -37,6 +37,16 @@ RUN yarn run build
 # Use the minimal, non-root user image for production
 FROM node:24-slim AS runner
 
+# Install Python, pip, ffmpeg, and yt-dlp
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        python3 \
+        python3-pip \
+        ffmpeg \
+    && pip3 install yt-dlp \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
 # Create a non-root user for security
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
