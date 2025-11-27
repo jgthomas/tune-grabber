@@ -96,8 +96,13 @@ describe('validateUrlString', () => {
       expect(result.isValid).toBe(true);
     });
 
-    it('should accept subdomain', () => {
+    it('should accept www', () => {
       const result = validateUrlString('https://www.example.com');
+      expect(result.isValid).toBe(true);
+    });
+
+    it('should accept subdomain', () => {
+      const result = validateUrlString('https://www.subdomain.example.com');
       expect(result.isValid).toBe(true);
     });
 
