@@ -9,4 +9,5 @@ export interface ValidationOptions {
   blockLocalhost?: boolean;
   blockedHosts?: string[];
   additionalProtocols?: string[];
+  permittedHosts?: string[];
 }

@@ -41,6 +41,21 @@ describe('ValidationMessages', () => {
       const message = ValidationMessages.PARSE_ERROR('Invalid URL');
       expect(message).toContain('Invalid URL');
     });
+
+    it('NOT_IN_PERMITTED_HOSTS should include hostname', () => {
+      const message = ValidationMessages.NOT_IN_PERMITTED_HOSTS('notallowed.com');
+      expect(message).toContain('notallowed.com');
+      expect(message).toContain('not in the list of permitted hosts');
+    });
+
+    it('NOT_IN_PERMITTED_HOSTS should format correctly for different hostnames', () => {
+      const hostnames = ['foo.com', 'bar.org', 'baz.net'];
+      hostnames.forEach((host) => {
+        const message = ValidationMessages.NOT_IN_PERMITTED_HOSTS(host);
+        expect(message).toContain(host);
+        expect(message).toMatch(/is not in the list of permitted hosts/);
+      });
+    });
   });
 
   describe('uniqueness', () => {

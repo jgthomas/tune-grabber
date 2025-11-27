@@ -14,6 +14,7 @@ export function validateUrlString(
     blockLocalhost = true,
     blockedHosts = [],
     additionalProtocols = [],
+    permittedHosts = [],
   } = options;
 
   if (!input) {
@@ -78,6 +79,20 @@ export function validateUrlString(
       return {
         isValid: false,
         message: ValidationMessages.BLOCKED_HOST(parsedUrl.hostname),
+      };
+    }
+  }
+
+  if (permittedHosts.length > 0) {
+    const hostname = parsedUrl.hostname.toLowerCase();
+    const isPermitted = permittedHosts.some(
+      (permittedHost) => hostname === permittedHost.toLowerCase(),
+    );
+
+    if (!isPermitted) {
+      return {
+        isValid: false,
+        message: ValidationMessages.NOT_IN_PERMITTED_HOSTS(parsedUrl.hostname),
       };
     }
   }

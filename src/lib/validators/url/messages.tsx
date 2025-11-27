@@ -11,6 +11,8 @@ export const ValidationMessages = {
   VALID: '✅ Valid URL format!',
   PARSE_ERROR: (errorMessage: string) => `❌ Invalid URL format: ${errorMessage}`,
   GENERIC_PARSE_ERROR: '❌ Invalid URL format: Parse error',
+  NOT_IN_PERMITTED_HOSTS: (hostname: string) =>
+    `URL hostname '${hostname}' is not in the list of permitted hosts.`,
 } as const;
 
 export type ValidationMessageKey = keyof typeof ValidationMessages;

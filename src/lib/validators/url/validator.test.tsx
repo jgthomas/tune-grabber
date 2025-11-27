@@ -248,6 +248,38 @@ describe('validateUrlString', () => {
       const result = validateUrlString('https://münchen.de');
       expect(result.isValid).toBe(true);
     });
+
+    describe('permitted hosts', () => {
+      it('should accept a permitted host', () => {
+        const result = validateUrlString('https://allowed.com', {
+          permittedHosts: ['allowed.com'],
+        });
+        expect(result.isValid).toBe(true);
+        expect(result.message).toBe(ValidationMessages.VALID);
+      });
+
+      it('should reject a non-permitted host', () => {
+        const result = validateUrlString('https://notallowed.com', {
+          permittedHosts: ['allowed.com'],
+        });
+        expect(result.isValid).toBe(false);
+        expect(result.message).toBe(ValidationMessages.NOT_IN_PERMITTED_HOSTS('notallowed.com'));
+      });
+
+      it('should be case-insensitive for permitted hosts', () => {
+        const result = validateUrlString('https://ALLOWED.com', {
+          permittedHosts: ['allowed.com'],
+        });
+        expect(result.isValid).toBe(true);
+      });
+
+      it('should accept any host if permittedHosts is empty', () => {
+        const result = validateUrlString('https://anyhost.com', {
+          permittedHosts: [],
+        });
+        expect(result.isValid).toBe(true);
+      });
+    });
   });
 
   describe('malformed URLs', () => {
