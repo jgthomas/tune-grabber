@@ -52,10 +52,6 @@ export function validateUrlString(
     };
   }
 
-  if (!parsedUrl.hostname) {
-    return { isValid: false, message: ValidationMessages.NO_HOSTNAME };
-  }
-
   if (!allowCredentials && (parsedUrl.username || parsedUrl.password)) {
     return {
       isValid: false,

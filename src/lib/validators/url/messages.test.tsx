@@ -5,7 +5,6 @@ describe('ValidationMessages', () => {
     it('should have all expected messages', () => {
       expect(ValidationMessages.EMPTY_INPUT).toBeDefined();
       expect(ValidationMessages.WHITESPACE).toBeDefined();
-      expect(ValidationMessages.NO_HOSTNAME).toBeDefined();
       expect(ValidationMessages.CREDENTIALS_NOT_ALLOWED).toBeDefined();
       expect(ValidationMessages.LOCALHOST_NOT_ALLOWED).toBeDefined();
       expect(ValidationMessages.VALID).toBeDefined();
@@ -49,7 +48,6 @@ describe('ValidationMessages', () => {
       const messages = [
         ValidationMessages.EMPTY_INPUT,
         ValidationMessages.WHITESPACE,
-        ValidationMessages.NO_HOSTNAME,
         ValidationMessages.CREDENTIALS_NOT_ALLOWED,
         ValidationMessages.LOCALHOST_NOT_ALLOWED,
         ValidationMessages.VALID,
