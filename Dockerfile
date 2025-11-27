@@ -28,6 +28,10 @@ COPY . .
 # IMPORTANT: Disable Next.js Telemetry during build
 ENV NEXT_TELEMETRY_DISABLED 1
 
+# Set executable path environment variables
+ENV YT_DLP_PATH=/usr/local/bin/yt-dlp
+ENV FFMPEG_PATH=/usr/bin/ffmpeg
+
 # Run the Next.js production build using 'yarn build'
 RUN yarn run build
 
@@ -66,6 +70,10 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 RUN mkdir -p .next
 RUN chown nextjs:nodejs .next
 RUN chown -R nextjs:nodejs /app
+
+# Set executable path environment variables
+ENV YT_DLP_PATH=/usr/local/bin/yt-dlp
+ENV FFMPEG_PATH=/usr/bin/ffmpeg
 
 # Switch to the non-root user
 USER nextjs

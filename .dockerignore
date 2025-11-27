@@ -24,3 +24,9 @@ yarn-debug.log*
 # 4. OS/Editor Ignores
 .DS_Store
 Thumbs.db
+
+# Environment files
+.env
+.env.*
+.env.local
+.env.development
