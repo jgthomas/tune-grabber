@@ -67,23 +67,21 @@ describe('validateUrlString', () => {
       expect(result.isValid).toBe(true);
     });
 
-      it('should reject custom protocol not in allowed list', () => {
-        const result = validateUrlString('ftp://ftp.example.com');
-        expect(result.isValid).toBe(false);
-        expect(result.message).toBe(
-          ValidationMessages.INVALID_PROTOCOL('ftp:')
-        );
-      });
+    it('should reject custom protocol not in allowed list', () => {
+      const result = validateUrlString('ftp://ftp.example.com');
+      expect(result.isValid).toBe(false);
+      expect(result.message).toBe(ValidationMessages.INVALID_PROTOCOL('ftp:'));
+    });
 
-      it('should show custom protocol error message when additionalProtocols is set but protocol is not allowed', () => {
-        const result = validateUrlString('sftp://sftp.example.com', {
-          additionalProtocols: ['ftp:'],
-        });
-        expect(result.isValid).toBe(false);
-        expect(result.message).toBe(
-          ValidationMessages.INVALID_PROTOCOL_CUSTOM('sftp:', ['http:', 'https:', 'ftp:'])
-        );
+    it('should show custom protocol error message when additionalProtocols is set but protocol is not allowed', () => {
+      const result = validateUrlString('sftp://sftp.example.com', {
+        additionalProtocols: ['ftp:'],
       });
+      expect(result.isValid).toBe(false);
+      expect(result.message).toBe(
+        ValidationMessages.INVALID_PROTOCOL_CUSTOM('sftp:', ['http:', 'https:', 'ftp:']),
+      );
+    });
   });
 
   describe('hostname', () => {
@@ -129,21 +127,21 @@ describe('validateUrlString', () => {
       expect(result.isValid).toBe(true);
     });
 
-      it('should reject credentials when username is present and allowCredentials is false', () => {
-        const result = validateUrlString('https://username@example.com', {
-          allowCredentials: false,
-        });
-        expect(result.isValid).toBe(false);
-        expect(result.message).toBe(ValidationMessages.CREDENTIALS_NOT_ALLOWED);
+    it('should reject credentials when username is present and allowCredentials is false', () => {
+      const result = validateUrlString('https://username@example.com', {
+        allowCredentials: false,
       });
+      expect(result.isValid).toBe(false);
+      expect(result.message).toBe(ValidationMessages.CREDENTIALS_NOT_ALLOWED);
+    });
 
-      it('should reject credentials when password is present and allowCredentials is false', () => {
-        const result = validateUrlString('https://user:password@example.com', {
-          allowCredentials: false,
-        });
-        expect(result.isValid).toBe(false);
-        expect(result.message).toBe(ValidationMessages.CREDENTIALS_NOT_ALLOWED);
+    it('should reject credentials when password is present and allowCredentials is false', () => {
+      const result = validateUrlString('https://user:password@example.com', {
+        allowCredentials: false,
       });
+      expect(result.isValid).toBe(false);
+      expect(result.message).toBe(ValidationMessages.CREDENTIALS_NOT_ALLOWED);
+    });
   });
 
   describe('localhost blocking', () => {
@@ -241,7 +239,6 @@ describe('validateUrlString', () => {
       expect(result.isValid).toBe(true);
     });
 
-
     it('should accept internationalized domains', () => {
       const result = validateUrlString('https://münchen.de');
       expect(result.isValid).toBe(true);
@@ -249,11 +246,11 @@ describe('validateUrlString', () => {
   });
 
   describe('malformed URLs', () => {
-        it('should reject invalid URL format and return parse error', () => {
-          const result = validateUrlString('ht!tp://bad-url');
-          expect(result.isValid).toBe(false);
-          expect(result.message).toContain('Invalid URL format');
-        });
+    it('should reject invalid URL format and return parse error', () => {
+      const result = validateUrlString('ht!tp://bad-url');
+      expect(result.isValid).toBe(false);
+      expect(result.message).toContain('Invalid URL format');
+    });
 
     it('should reject random text', () => {
       const result = validateUrlString('not a url at all');
