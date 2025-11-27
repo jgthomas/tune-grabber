@@ -33,10 +33,7 @@ export function validateUrlString(
   } catch (error) {
     return {
       isValid: false,
-      message:
-        error instanceof Error
-          ? ValidationMessages.PARSE_ERROR(error.message)
-          : ValidationMessages.GENERIC_PARSE_ERROR,
+      message: ValidationMessages.PARSE_ERROR((error as Error).message),
     };
   }
 
