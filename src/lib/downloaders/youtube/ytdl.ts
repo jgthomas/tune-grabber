@@ -1,4 +1,4 @@
-import { YtDlp } from 'ytdlp-nodejs';
+import ytdlp from './ytdlp-wrapper';
 import { validateUrlString } from '@/lib/validators/url';
 
 const YOUTUBE_DOMAINS = [
@@ -8,18 +8,6 @@ const YOUTUBE_DOMAINS = [
   'm.youtube.com',
   'music.youtube.com',
 ];
-
-const YT_DLP_PATH = process.env.YT_DLP_PATH;
-const FFMPEG_PATH = process.env.FFMPEG_PATH;
-
-if (!YT_DLP_PATH || !FFMPEG_PATH) {
-  throw new Error('YT_DLP_PATH and FFMPEG_PATH environment variables must be set');
-}
-
-const ytdlp = new YtDlp({
-  binaryPath: YT_DLP_PATH,
-  ffmpegPath: FFMPEG_PATH,
-});
 
 export async function downloadVideoAndExtractAudioToMp3(yturl: string) {
   try {
