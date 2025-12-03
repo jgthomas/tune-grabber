@@ -2,10 +2,7 @@
 YT_DLP_PATH := /usr/bin/yt-dlp
 FFMPEG_PATH := /usr/bin/ffmpeg
 
-.PHONY: download clean help
-
-download:
-	YT_DLP_PATH=$(YT_DLP_PATH) FFMPEG_PATH=$(FFMPEG_PATH) npx tsx src/lib/downloaders/youtube/test_download.ts
+.PHONY: clean help
 
 clean:
 	rm -f *.mp3
