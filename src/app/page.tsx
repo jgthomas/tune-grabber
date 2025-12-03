@@ -1,3 +1,5 @@
+import DownloadForm from '@/components/DownloadForm';
+
 export default function Home() {
   return (
     <div className="flex min-h-screen justify-center bg-zinc-50 dark:bg-black">
@@ -5,8 +7,7 @@ export default function Home() {
         <h1 className="text-3xl font-semibold tracking-tight text-black dark:text-zinc-50">
           Enter Video Link
         </h1>
-        <h2>`yt-dlp path: {process.env.YT_DLP_PATH}`</h2>
-        <h2>`ffmpeg path: {process.env.FFMPEG_PATH}`</h2>
+        <DownloadForm />
       </main>
     </div>
   );
