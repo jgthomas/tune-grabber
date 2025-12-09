@@ -1,87 +1,66 @@
 # ------------------------------------
-# Stage 1: Base & Dependencies (Yarn Berry Install)
+# Stage 1: Build Application
 # ------------------------------------
-FROM node:24-alpine AS base
+FROM node:24-alpine AS builder
 
 # Install required native package for Alpine compatibility
 RUN apk add --no-cache libc6-compat
+
 WORKDIR /app
 
-# 1. Copy Yarn configuration files
+# Copy Yarn configuration files
 COPY package.json yarn.lock .yarnrc.yml ./
 
-# 2. IMPORTANT: Copy the entire .yarn directory and its contents separately
-# This ensures the yarn binary and cache files are correctly transferred.
+# Copy the entire .yarn directory (Yarn Berry)
 COPY .yarn/ .yarn/
 
-# Install dependencies using Yarn. 
+# Install dependencies using Yarn
 RUN yarn install --immutable
-
-# ------------------------------------
-# Stage 2: Build Application
-# ------------------------------------
-FROM base AS builder
 
 # Copy the rest of the source code
 COPY . .
 
-# IMPORTANT: Disable Next.js Telemetry during build
-ENV NEXT_TELEMETRY_DISABLED 1
+# Disable Next.js Telemetry during build
+ENV NEXT_TELEMETRY_DISABLED=1
 
-# Set executable path environment variables
+# Set executable path environment variables for build time
+# (These will be overridden in the runtime stage with actual paths)
 ENV YT_DLP_PATH=/usr/local/bin/yt-dlp
 ENV FFMPEG_PATH=/usr/bin/ffmpeg
 
-# Run the Next.js production build using 'yarn build'
-RUN yarn run build
+# Run the Next.js production build
+RUN yarn build
 
 # ------------------------------------
-# Stage 3: Final Production Runner (Minimal & Secure)
+# Stage 2: Lambda Runtime with Dependencies
 # ------------------------------------
-# Use the minimal, non-root user image for production
-FROM node:24-slim AS runner
+FROM public.ecr.aws/lambda/nodejs:24
 
-# Install ffmpeg and yt-dlp static binary
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl ffmpeg ca-certificates\
+# Install ffmpeg and yt-dlp (using curl-minimal that's already in the image)
+RUN dnf install -y tar xz \
+    && curl -L https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz -o /tmp/ffmpeg.tar.xz \
+    && tar -xf /tmp/ffmpeg.tar.xz -C /tmp \
+    && mv /tmp/ffmpeg-*-amd64-static/ffmpeg /usr/local/bin/ffmpeg \
+    && mv /tmp/ffmpeg-*-amd64-static/ffprobe /usr/local/bin/ffprobe \
+    && chmod +x /usr/local/bin/ffmpeg /usr/local/bin/ffprobe \
     && curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
     && chmod a+rx /usr/local/bin/yt-dlp \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create a non-root user for security
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-# Set working directory to the standalone output folder
-WORKDIR /app
-
-# Copy only the files needed for runtime from the builder stage, owned by the non-root user
-# 1. The standalone server files
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-
-# 2. Public assets
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-
-# 3. Static files
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-# Set up the .next directory and ensure correct ownership
-RUN mkdir -p .next
-RUN chown nextjs:nodejs .next
-RUN chown -R nextjs:nodejs /app
+    && rm -rf /tmp/ffmpeg* \
+    && dnf clean all
 
 # Set executable path environment variables
 ENV YT_DLP_PATH=/usr/local/bin/yt-dlp
-ENV FFMPEG_PATH=/usr/bin/ffmpeg
+ENV FFMPEG_PATH=/usr/local/bin/ffmpeg
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
-# Switch to the non-root user
-USER nextjs
+# Copy the standalone Next.js build from builder
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
 
-# Set environment variables for production
-ENV NODE_ENV production
-ENV HOSTNAME 0.0.0.0
-EXPOSE 3000
+# Copy Lambda handler
+COPY server.js ./
 
-# Command to start the standalone Next.js server
-CMD ["node", "server.js"]
+# Lambda handler
+CMD ["server.handler"]

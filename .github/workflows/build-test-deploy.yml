@@ -1,0 +1,157 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: ['main']
+  pull_request:
+    branches: ['main']
+
+# Cancel in-progress runs when a new run is triggered
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  AWS_REGION: eu-west-2
+  ECR_REPOSITORY: tune-grabber
+  LAMBDA_FUNCTION: tune-grabber
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⚙️ Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🛠️ Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'yarn'
+
+      - name: 📥 Install Dependencies
+        run: yarn install --immutable
+
+      - name: 💾 Cache Next.js Build
+        uses: actions/cache@v4
+        with:
+          path: |
+            .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/yarn.lock') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('**/yarn.lock') }}-
+            ${{ runner.os }}-nextjs-
+
+      - name: 🔎 Run Lint Check
+        run: yarn lint
+
+      - name: 🧪 Run Type Check
+        run: yarn type-check
+
+      - name: 🧪 Run Tests
+        run: yarn test
+
+      - name: 🏗️ Run Next.js Production Build
+        run: yarn build
+
+      - name: 📝 Generate Build Summary
+        if: always()
+        run: |
+          {
+            echo "### 🚀 Build Summary"
+            echo ""
+            echo "- **Status:** ${{ job.status }}"
+            echo "- **Branch:** ${{ github.ref_name }}"
+            echo "- **Commit:** \`${{ github.sha }}\`"
+            echo "- **Node Version:** 24"
+            echo "- **Triggered by:** ${{ github.actor }}"
+          } >> $GITHUB_STEP_SUMMARY
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+
+    steps:
+      - name: ⚙️ Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🛠️ Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'yarn'
+
+      - name: 📥 Install Dependencies
+        run: yarn install --immutable
+
+      - name: 🏗️ Build Next.js App
+        run: yarn build
+
+      - name: 🐳 Test Docker Build (Lambda)
+        run: docker build -t tune-grabber:test .
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: docker-build
+    # Only deploy on main branch pushes (not PRs)
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: ⚙️ Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🛠️ Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'yarn'
+
+      - name: 📥 Install Dependencies
+        run: yarn install --immutable
+
+      - name: 🏗️ Build Next.js App
+        run: yarn build
+
+      - name: 🔐 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: 🔑 Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: 🐳 Build, Tag, and Push Lambda Image to ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: 🚀 Update Lambda Function
+        run: |
+          aws lambda update-function-code \
+            --function-name ${{ env.LAMBDA_FUNCTION }} \
+            --image-uri ${{ steps.build-image.outputs.image }} \
+            --region ${{ env.AWS_REGION }}
+
+      - name: 📝 Generate Deployment Summary
+        if: success()
+        run: |
+          {
+            echo "### 🎉 Deployment Summary"
+            echo ""
+            echo "- **Status:** Deployed Successfully"
+            echo "- **Lambda Function:** ${{ env.LAMBDA_FUNCTION }}"
+            echo "- **Region:** ${{ env.AWS_REGION }}"
+            echo "- **Image Tag:** \`${{ github.sha }}\`"
+            echo "- **Deployed by:** ${{ github.actor }}"
+          } >> $GITHUB_STEP_SUMMARY

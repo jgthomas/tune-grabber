@@ -16,6 +16,7 @@ const eslintConfig = defineConfig([
     'jest.config.js',
     'jest.setup.js',
     'coverage/**',
+    'server.js',
   ]),
 ]);
 
