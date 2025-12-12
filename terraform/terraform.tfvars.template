@@ -1,0 +1,8 @@
+# Email address for cost alerts (REQUIRED)
+alert_email = "your-email@example.com"
+
+# Optional: Override default values
+# monthly_budget_limit = 10
+# cost_anomaly_threshold = 5
+# lambda_cost_threshold = 5
+# budget_alert_threshold_percent = 80

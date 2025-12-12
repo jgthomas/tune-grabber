@@ -8,11 +8,7 @@ terraform {
 }
 
 provider "aws" {
-  region = "eu-west-2" # London
-}
-
-variable "app_name" {
-  default = "tune-grabber"
+  region = var.aws_region
 }
 
 # ECR Repository
