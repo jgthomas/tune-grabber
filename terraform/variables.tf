@@ -10,6 +10,12 @@ variable "aws_region" {
   default     = "eu-west-2"
 }
 
+variable "image_tag" {
+  description = "The ECR image tag to deploy to the Lambda function."
+  type        = string
+  default     = "initial-dummy" # Placeholder for first run
+}
+
 variable "alert_email" {
   description = "Email address for cost and monitoring alerts"
   type        = string

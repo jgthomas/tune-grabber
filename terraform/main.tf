@@ -54,7 +54,7 @@ resource "aws_lambda_function" "app" {
   function_name = var.app_name
   role          = aws_iam_role.lambda.arn
   package_type  = "Image"
-  image_uri     = "${aws_ecr_repository.app.repository_url}:latest"
+  image_uri     = "${aws_ecr_repository.app.repository_url}:${var.image_tag}"
   timeout       = 30
   memory_size   = 512
 
@@ -68,10 +68,6 @@ resource "aws_lambda_function" "app" {
     aws_cloudwatch_log_group.lambda,
     aws_iam_role_policy_attachment.lambda_basic
   ]
-
-  lifecycle {
-    ignore_changes = [image_uri]
-  }
 }
 
 # Lambda Function URL (public access)
