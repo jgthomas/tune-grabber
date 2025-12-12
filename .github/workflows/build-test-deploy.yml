@@ -2,11 +2,10 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: ['**'] # Run on all branches
+    branches: ['**']
   pull_request:
     branches: ['main']
 
-# Cancel in-progress runs when a new run is triggered
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -68,50 +67,16 @@ jobs:
             echo "- **Triggered by:** ${{ github.actor }}"
           } >> $GITHUB_STEP_SUMMARY
 
-  docker-build:
+  release-and-deploy:
     runs-on: ubuntu-latest
     needs: build-and-test
-
-    steps:
-      - name: ⚙️ Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: 🛠️ Setup Node.js 24
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: 'yarn'
-
-      - name: 📥 Install Dependencies
-        run: yarn install --immutable
-
-      - name: 🏗️ Build Next.js App
-        run: yarn build
-
-      - name: 🐳 Test Docker Build (Lambda)
-        run: docker build -t tune-grabber:test .
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: docker-build
-    # Only deploy on main branch pushes (not PRs)
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
       - name: ⚙️ Checkout Repository
         uses: actions/checkout@v4
 
-      - name: 🛠️ Setup Node.js 24
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: 'yarn'
-
-      - name: 📥 Install Dependencies
-        run: yarn install --immutable
-
-      - name: 🏗️ Build Next.js App
-        run: yarn build
+      # --- ECR PUSH & IMAGE BUILD ---
 
       - name: 🔐 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -124,7 +89,7 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: 🐳 Build, Tag, and Push Lambda Image to ECR
+      - name: 🐳 Build, Tag, and Push Lambda Image to ECR (Single Build Point)
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -134,14 +99,27 @@ jobs:
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT # Set a simpler output variable
 
-      - name: 🚀 Update Lambda Function
+      # --- TERRAFORM DEPLOYMENT STEPS ---
+
+      - name: 📦 Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: ⚙️ Terraform Init
+        run: terraform init
+
+      - name: 📝 Terraform Plan (Code Update)
+        env:
+          IMAGE_TAG: ${{ steps.build-image.outputs.image_tag }}
         run: |
-          aws lambda update-function-code \
-            --function-name ${{ env.LAMBDA_FUNCTION }} \
-            --image-uri ${{ steps.build-image.outputs.image }} \
-            --region ${{ env.AWS_REGION }}
+          # Generate the plan using the new image tag and save it to a file
+          terraform plan -out=tfplan -var="image_tag=$IMAGE_TAG"
+
+      - name: 🚀 Terraform Apply
+        run: |
+          # Apply the plan artifact generated in the previous step
+          terraform apply -auto-approve tfplan
 
       - name: 📝 Generate Deployment Summary
         if: success()
@@ -152,6 +130,6 @@ jobs:
             echo "- **Status:** Deployed Successfully"
             echo "- **Lambda Function:** ${{ env.LAMBDA_FUNCTION }}"
             echo "- **Region:** ${{ env.AWS_REGION }}"
-            echo "- **Image Tag:** \`${{ github.sha }}\`"
+            echo "- **Image Tag:** \`${{ steps.build-image.outputs.image_tag }}\`"
             echo "- **Deployed by:** ${{ github.actor }}"
           } >> $GITHUB_STEP_SUMMARY
