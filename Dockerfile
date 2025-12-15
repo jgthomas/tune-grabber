@@ -24,43 +24,54 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Set executable path environment variables for build time
-# (These will be overridden in the runtime stage with actual paths)
 ENV YT_DLP_PATH=/usr/local/bin/yt-dlp
-ENV FFMPEG_PATH=/usr/bin/ffmpeg
+ENV FFMPEG_PATH=/usr/local/bin/ffmpeg
 
 # Run the Next.js production build
 RUN yarn build
 
 # ------------------------------------
-# Stage 2: Lambda Runtime with Dependencies
+# Stage 2: Production Runtime
 # ------------------------------------
-FROM public.ecr.aws/lambda/nodejs:24
+FROM node:24-slim AS runner
 
-# Install ffmpeg and yt-dlp (using curl-minimal that's already in the image)
-RUN dnf install -y tar xz \
-    && curl -L https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz -o /tmp/ffmpeg.tar.xz \
-    && tar -xf /tmp/ffmpeg.tar.xz -C /tmp \
-    && mv /tmp/ffmpeg-*-amd64-static/ffmpeg /usr/local/bin/ffmpeg \
-    && mv /tmp/ffmpeg-*-amd64-static/ffprobe /usr/local/bin/ffprobe \
-    && chmod +x /usr/local/bin/ffmpeg /usr/local/bin/ffprobe \
+# Install ffmpeg and yt-dlp
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl ffmpeg ca-certificates \
     && curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
     && chmod a+rx /usr/local/bin/yt-dlp \
-    && rm -rf /tmp/ffmpeg* \
-    && dnf clean all
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create a non-root user for security
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+WORKDIR /app
+
+# Copy the standalone Next.js build from builder
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+
+# Set up the .next directory and ensure correct ownership
+RUN mkdir -p .next
+RUN chown nextjs:nodejs .next
+RUN chown -R nextjs:nodejs /app
 
 # Set executable path environment variables
 ENV YT_DLP_PATH=/usr/local/bin/yt-dlp
 ENV FFMPEG_PATH=/usr/local/bin/ffmpeg
+
+# Switch to the non-root user
+USER nextjs
+
+# Set environment variables for production
 ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
+ENV HOSTNAME=0.0.0.0
+ENV PORT=8080
 
-# Copy the standalone Next.js build from builder
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
+EXPOSE 8080
 
-# Copy Lambda handler
-COPY server.js ./
-
-# Lambda handler
-CMD ["server.handler"]
+# Command to start the standalone Next.js server
+CMD ["node", "server.js"]

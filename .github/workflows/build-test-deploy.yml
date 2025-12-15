@@ -12,8 +12,7 @@ concurrency:
 
 env:
   AWS_REGION: eu-west-2
-  ECR_REPOSITORY: tune-grabber
-  LAMBDA_FUNCTION: tune-grabber
+  APP_NAME: tune-grabber
 
 jobs:
   build-and-test:
@@ -67,16 +66,49 @@ jobs:
             echo "- **Triggered by:** ${{ github.actor }}"
           } >> $GITHUB_STEP_SUMMARY
 
-  release-and-deploy:
+  docker-build:
     runs-on: ubuntu-latest
     needs: build-and-test
+
+    steps:
+      - name: ⚙️ Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🛠️ Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'yarn'
+
+      - name: 📥 Install Dependencies
+        run: yarn install --immutable
+
+      - name: 🏗️ Build Next.js App
+        run: yarn build
+
+      - name: 🐳 Test Docker Build (Lambda)
+        run: docker build -t tune-grabber:test .
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: docker-build
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
       - name: ⚙️ Checkout Repository
         uses: actions/checkout@v4
 
-      # --- ECR PUSH & IMAGE BUILD ---
+      - name: 🛠️ Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'yarn'
+
+      - name: 📥 Install Dependencies
+        run: yarn install --immutable
+
+      - name: 🏗️ Build Next.js App
+        run: yarn build
 
       - name: 🔐 Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -89,46 +121,52 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: 🐳 Build, Tag, and Push Lambda Image to ECR (Single Build Point)
+      - name: 🐳 Build, Tag, and Push App Runner Image to ECR
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT # Set a simpler output variable
-
-      # --- TERRAFORM DEPLOYMENT STEPS ---
+          docker build -t $ECR_REGISTRY/${{ env.APP_NAME }}:$IMAGE_TAG .
+          docker tag $ECR_REGISTRY/${{ env.APP_NAME }}:$IMAGE_TAG $ECR_REGISTRY/${{ env.APP_NAME }}:latest
+          docker push $ECR_REGISTRY/${{ env.APP_NAME }}:$IMAGE_TAG
+          docker push $ECR_REGISTRY/${{ env.APP_NAME }}:latest
+          echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: 📦 Setup Terraform
         uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
 
       - name: ⚙️ Terraform Init
+        working-directory: ./terraform
         run: terraform init
 
-      - name: 📝 Terraform Plan (Code Update)
+      - name: 📝 Terraform Plan (App Runner Update)
+        working-directory: ./terraform
         env:
           IMAGE_TAG: ${{ steps.build-image.outputs.image_tag }}
         run: |
-          # Generate the plan using the new image tag and save it to a file
-          terraform plan -out=tfplan -var="image_tag=$IMAGE_TAG"
+          terraform plan -out=tfplan \
+            -var="image_tag=$IMAGE_TAG" \
+            -var="app_name=${{ env.APP_NAME }}"
 
       - name: 🚀 Terraform Apply
-        run: |
-          # Apply the plan artifact generated in the previous step
-          terraform apply -auto-approve tfplan
+        working-directory: ./terraform
+        run: terraform apply -auto-approve tfplan
 
       - name: 📝 Generate Deployment Summary
         if: success()
+        working-directory: ./terraform
         run: |
+          APP_RUNNER_URL=$(terraform output -raw apprunner_service_url)
+
           {
             echo "### 🎉 Deployment Summary"
             echo ""
             echo "- **Status:** Deployed Successfully"
-            echo "- **Lambda Function:** ${{ env.LAMBDA_FUNCTION }}"
+            echo "- **App Runner Service:** ${{ env.APP_NAME }}"
+            echo "- **Service URL:** [Click Here]($APP_RUNNER_URL)"
             echo "- **Region:** ${{ env.AWS_REGION }}"
             echo "- **Image Tag:** \`${{ steps.build-image.outputs.image_tag }}\`"
             echo "- **Deployed by:** ${{ github.actor }}"
