@@ -20,7 +20,8 @@ resource "aws_ce_anomaly_monitor" "app_monitor" {
 # Cost Anomaly Subscription
 resource "aws_ce_anomaly_subscription" "app_subscription" {
   name      = "${var.app_name}-cost-alerts"
-  frequency = "DAILY"
+  # FIX/IMPROVEMENT: Set to IMMEDIATE for faster detection of spikes
+  frequency = "IMMEDIATE" 
 
   monitor_arn_list = [
     aws_ce_anomaly_monitor.app_monitor.arn,
@@ -46,7 +47,7 @@ resource "aws_budgets_budget" "monthly" {
   budget_type       = "COST"
   limit_amount      = tostring(var.monthly_budget_limit)
   limit_unit        = "USD"
-  time_period_start = "2024-12-01_00:00"
+  time_period_start = "2025-12-01_00:00"
   time_unit         = "MONTHLY"
 
   notification {
@@ -54,7 +55,7 @@ resource "aws_budgets_budget" "monthly" {
     threshold                  = var.budget_alert_threshold_percent
     threshold_type             = "PERCENTAGE"
     notification_type          = "ACTUAL"
-    subscriber_email_addresses = [var.alert_email]
+    subscriber_sns_topic_arns  = [aws_sns_topic.cost_alerts.arn]
   }
 
   notification {
@@ -62,33 +63,11 @@ resource "aws_budgets_budget" "monthly" {
     threshold                  = 100
     threshold_type             = "PERCENTAGE"
     notification_type          = "ACTUAL"
-    subscriber_email_addresses = [var.alert_email]
+    subscriber_sns_topic_arns  = [aws_sns_topic.cost_alerts.arn]
   }
 
-  # Optional: Filter to only monitor specific services
-  cost_filter {
-    name   = "Service"
-    values = ["AWS Lambda", "Amazon Elastic Container Registry"]
-  }
-}
-
-# CloudWatch Metric Alarm for Lambda costs
-resource "aws_cloudwatch_metric_alarm" "lambda_cost" {
-  alarm_name          = "${var.app_name}-lambda-cost-alarm"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 1
-  metric_name         = "EstimatedCharges"
-  namespace           = "AWS/Billing"
-  period              = 21600 # 6 hours
-  statistic           = "Maximum"
-  threshold           = var.lambda_cost_threshold
-  alarm_description   = "Alert when Lambda costs exceed threshold"
-  alarm_actions       = [aws_sns_topic.cost_alerts.arn]
-
-  dimensions = {
-    ServiceName = "AWSLambda"
-    Currency    = "USD"
-  }
+  # REMOVED: The cost_filter block is completely removed here.
+  # This makes the budget monitor ALL costs in the AWS account.
 }
 
 # Outputs
@@ -100,13 +79,14 @@ output "sns_topic_arn" {
 output "cost_monitoring_setup" {
   value = <<-EOT
     Cost Monitoring Configured:
-    - Monthly Budget: $${var.monthly_budget_limit}
+    - Scope: ALL ACCOUNT COSTS
+    - Monthly Budget: ${var.monthly_budget_limit}
     - Alert at ${var.budget_alert_threshold_percent}% of budget
-    - Cost Anomaly Threshold: $${var.cost_anomaly_threshold}
-    - Lambda Cost Threshold: $${var.lambda_cost_threshold}
+    - Cost Anomaly Threshold: ${var.cost_anomaly_threshold}
     - Alert Email: ${var.alert_email}
     
     ⚠️  Check your email (${var.alert_email}) to confirm SNS subscription!
+    ⚠️  SNS Topic ARN: ${aws_sns_topic.cost_alerts.arn}
   EOT
   description = "Cost monitoring configuration summary"
 }

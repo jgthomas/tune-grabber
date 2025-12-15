@@ -11,22 +11,25 @@ provider "aws" {
   region = var.aws_region
 }
 
-# ECR Repository
+# --- 1. ECR Repository ---
 resource "aws_ecr_repository" "app" {
   name                 = var.app_name
   image_tag_mutability = "MUTABLE"
-
-  # Allows Terraform to delete the repository even if it contains images
   force_delete         = true
 
   image_scanning_configuration {
     scan_on_push = true
   }
+
+  tags = {
+    Environment = "production"
+    ManagedBy   = "terraform"
+  }
 }
 
-# IAM Role for Lambda Execution
-resource "aws_iam_role" "lambda" {
-  name = "${var.app_name}-lambda-role"
+# --- 2. IAM Role for App Runner (Execution Role - PULLS IMAGE & LOGS) ---
+resource "aws_iam_role" "apprunner_execution" {
+  name = "${var.app_name}-apprunner-execution-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -34,68 +37,129 @@ resource "aws_iam_role" "lambda" {
       Action = "sts:AssumeRole"
       Effect = "Allow"
       Principal = {
-        Service = "lambda.amazonaws.com"
+        # FIX: Changed from 'build.apprunner.amazonaws.com' to the correct principal for ECR-based services
+        Service = "tasks.apprunner.amazonaws.com"
       }
     }]
   })
 }
 
-# Attach basic Lambda execution policy
-resource "aws_iam_role_policy_attachment" "lambda_basic" {
-  role       = aws_iam_role.lambda.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+resource "aws_iam_role_policy_attachment" "apprunner_execution_policy" {
+  role       = aws_iam_role.apprunner_execution.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess"
 }
 
-# CloudWatch Log Group
-resource "aws_cloudwatch_log_group" "lambda" {
-  name              = "/aws/lambda/${var.app_name}"
-  retention_in_days = 7
+# --- NEW: IAM Role for App Runner (Instance Role - APPLICATION PERMISSIONS) ---
+# This role grants permissions to the application code itself (e.g., S3 access, Secrets Manager)
+resource "aws_iam_role" "apprunner_instance" {
+  name = "${var.app_name}-apprunner-instance-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = {
+        # The same principal is used for the instance role
+        Service = "tasks.apprunner.amazonaws.com"
+      }
+    }]
+  })
+
+  # NOTE: Attach policies here (e.g., S3 ReadOnly, SecretsManagerReadWrite) 
+  # This example uses no policy for minimum changes, but you must add one if needed.
 }
 
-# Lambda Function
-resource "aws_lambda_function" "app" {
-  function_name = var.app_name
-  role          = aws_iam_role.lambda.arn
-  package_type  = "Image"
-  image_uri     = "${aws_ecr_repository.app.repository_url}:${var.image_tag}"
-  timeout       = 30
-  memory_size   = 512
+# --- 3. App Runner Auto Scaling Configuration (COST OPTIMIZED) ---
+resource "aws_apprunner_auto_scaling_configuration_version" "cost_saver" {
+  auto_scaling_configuration_name = "${var.app_name}-cost-saver"
 
-  environment {
-    variables = {
-      NODE_ENV = "production"
-    }
+  # FIX: Must be 1 (App Runner does not support 0)
+  min_size = 1 
+
+  # Cap maximum instances to prevent unexpected spending
+  max_size = var.apprunner_max_size
+
+  # Higher concurrency = fewer instances needed = lower cost
+  max_concurrency = var.apprunner_max_concurrency
+
+  tags = {
+    Environment   = "production"
+    CostOptimized = "true"
+  }
+}
+
+# --- 4. AWS App Runner Service ---
+resource "aws_apprunner_service" "app" {
+  service_name = var.app_name
+
+  auto_scaling_configuration_arn = aws_apprunner_auto_scaling_configuration_version.cost_saver.arn
+
+  instance_configuration {
+    # *** SMALLEST AVAILABLE INSTANCE (COST OPTIMIZED) ***
+    cpu    = var.apprunner_cpu    # 1024 = 1 vCPU (minimum)
+    memory = var.apprunner_memory # 2048 = 2 GB (minimum)
+
+    # NEW: Link the instance role to allow application code to access other AWS services
+    instance_role_arn = aws_iam_role.apprunner_instance.arn
   }
 
-  depends_on = [
-    aws_cloudwatch_log_group.lambda,
-    aws_iam_role_policy_attachment.lambda_basic
-  ]
+  source_configuration {
+    image_repository {
+      image_identifier      = "${aws_ecr_repository.app.repository_url}:${var.image_tag}"
+      image_repository_type = "ECR"
+
+      image_configuration {
+        port = var.app_port
+
+        runtime_environment_variables = {
+          NODE_ENV        = "production"
+          YT_DLP_PATH     = "/usr/local/bin/yt-dlp"
+          FFMPEG_PATH     = "/usr/local/bin/ffmpeg"
+        }
+      }
+    }
+
+    authentication_configuration {
+      access_role_arn = aws_iam_role.apprunner_execution.arn
+    }
+
+    # Disable auto-deployments (managed by Terraform)
+    auto_deployments_enabled = false
+  }
+
+  health_check_configuration {
+    protocol            = "HTTP"
+    path                = "/"
+    interval            = 10
+    timeout             = 5
+    healthy_threshold   = 1
+    unhealthy_threshold = 3
+  }
+
+  tags = {
+    Environment = "production"
+    ManagedBy   = "terraform"
+  }
 }
 
-# Lambda Function URL (public access)
-resource "aws_lambda_function_url" "app" {
-  function_name      = aws_lambda_function.app.function_name
-  authorization_type = "NONE"
-}
-
-# Outputs
+# --- Outputs ---
 output "ecr_repository_url" {
   value       = aws_ecr_repository.app.repository_url
   description = "ECR repository URL for pushing Docker images"
 }
 
-output "function_url" {
-  value       = aws_lambda_function_url.app.function_url
-  description = "Public URL to access your application"
+output "apprunner_service_url" {
+  value       = "https://${aws_apprunner_service.app.service_url}"
+  description = "Public URL to access your application on AWS App Runner"
 }
 
-output "lambda_function_name" {
-  value       = aws_lambda_function.app.function_name
-  description = "Lambda function name"
+output "apprunner_service_id" {
+  value       = aws_apprunner_service.app.service_id
+  description = "App Runner service ID"
 }
 
-output "cloudwatch_log_group" {
-  value       = aws_cloudwatch_log_group.lambda.name
-  description = "CloudWatch log group for Lambda logs"
+output "apprunner_service_arn" {
+  value       = aws_apprunner_service.app.arn
+  description = "App Runner service ARN"
 }
