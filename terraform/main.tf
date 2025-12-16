@@ -37,8 +37,7 @@ resource "aws_iam_role" "apprunner_execution" {
       Action = "sts:AssumeRole"
       Effect = "Allow"
       Principal = {
-        # FIX: Changed from 'build.apprunner.amazonaws.com' to the correct principal for ECR-based services
-        Service = "tasks.apprunner.amazonaws.com"
+        Service = "build.apprunner.amazonaws.com"
       }
     }]
   })
@@ -131,9 +130,9 @@ resource "aws_apprunner_service" "app" {
   health_check_configuration {
     protocol            = "HTTP"
     path                = "/"
-    interval            = 10
-    timeout             = 5
-    healthy_threshold   = 1
+    interval            = 20
+    timeout             = 10
+    healthy_threshold   = 2
     unhealthy_threshold = 3
   }
 
