@@ -1,23 +1,24 @@
-.PHONY: setup teardown clean help
+.PHONY: setup teardown clean help import
 
 # --- Variables ---
 TF_DIR := terraform
+APP_NAME := tune-grabber
 
 create: ## 🏗️  Full backend and infrastructure setup
 	@echo "--- Starting Setup ---"
 	./bootstrap.sh create
 	cd $(TF_DIR) && terraform init
 	cd $(TF_DIR) && terraform plan
-	@echo "--- Setup complete. ---"
-	@echo "Run the pipeline or 'cd terraform && terraform apply' to deploy. ---"
+	@echo "--- Setup complete. Run 'make import' if ECR already exists. ---"
 
-destroy: ## 🧨 Full infrastructure and backend destruction
+import: ## 📥 Sync existing ECR repository into state
+	@echo "--- Importing existing ECR repository ---"
+	cd $(TF_DIR) && terraform import aws_ecr_repository.app $(APP_NAME)
+
+destroy: ## 🧨 Full infrastructure destruction
 	@echo "--- Starting Teardown ---"
-	@echo "⚠️  Warning: This will destroy ALL managed infrastructure and the backend state."
-	@read -p "Are you sure? [y/N] " ans && [ $${ans:-N} = y ]
 	cd $(TF_DIR) && terraform destroy -auto-approve
 	./bootstrap.sh destroy
-	@echo "--- Teardown complete. ---"
 
 clean: ## 🧹 Clean local temporary files
 	rm -f *.mp3
