@@ -18,6 +18,13 @@ const eslintConfig = defineConfig([
     'coverage/**',
     'server.js',
   ]),
+
+  {
+    files: ['**/*.test.ts', '**/*.test.tsx', '**/__tests__/**/*.ts', '**/__tests__/**/*.tsx'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off', // allow require() in tests
+    },
+  },
 ]);
 
 export default eslintConfig;
