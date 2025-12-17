@@ -131,7 +131,7 @@ resource "aws_apprunner_service" "app" {
     protocol            = "HTTP"
     path                = "/api/health"
     interval            = 20
-    timeout             = 30
+    timeout             = 20
     healthy_threshold   = 1
     unhealthy_threshold = 5
   }
