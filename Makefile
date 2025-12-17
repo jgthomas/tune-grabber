@@ -8,7 +8,8 @@ create: ## 🏗️  Full backend and infrastructure setup
 	./bootstrap.sh create
 	cd $(TF_DIR) && terraform init
 	cd $(TF_DIR) && terraform plan
-	@echo "--- Setup complete. Run 'make apply' or 'cd terraform && terraform apply' to deploy. ---"
+	@echo "--- Setup complete. ---"
+	@echo "Run the pipeline or 'cd terraform && terraform apply' to deploy. ---"
 
 destroy: ## 🧨 Full infrastructure and backend destruction
 	@echo "--- Starting Teardown ---"
