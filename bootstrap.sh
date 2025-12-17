@@ -44,14 +44,37 @@ create_backend() {
 destroy_backend() {
     echo "--- Tearing Down Infrastructure ---"
     
-    # ECR
-    aws ecr delete-repository --repository-name "$ECR_REPO_NAME" --force 2>/dev/null && echo "Deleted ECR Repo"
+    # 1. ECR Repository Delete/Skip
+    if aws ecr describe-repositories --repository-names "$ECR_REPO_NAME" 2>/dev/null; then
+        aws ecr delete-repository --repository-name "$ECR_REPO_NAME" --force 2>/dev/null && echo "✅ Deleted ECR Repo"
+    else
+        echo "✅ ECR Repo already gone. Skipping..."
+    fi
     
-    # Dynamo
-    aws dynamodb delete-table --table-name "$DYNAMODB_TABLE_NAME" 2>/dev/null && echo "Deleted DynamoDB Table"
+    # 2. DynamoDB Table Delete/Skip
+    if aws dynamodb describe-table --table-name "$DYNAMODB_TABLE_NAME" 2>/dev/null; then
+        aws dynamodb delete-table --table-name "$DYNAMODB_TABLE_NAME" 2>/dev/null && echo "✅ Deleted DynamoDB Table"
+    else
+        echo "✅ DynamoDB Table already gone. Skipping..."
+    fi
     
-    # S3
-    aws s3 rb s3://"$S3_BUCKET_NAME" --force 2>/dev/null && echo "Deleted S3 Bucket"
+    # 3. S3 Bucket Delete/Skip (with version purging)
+    if aws s3api head-bucket --bucket "$S3_BUCKET_NAME" 2>/dev/null; then
+        echo "Cleaning up all versions from S3 bucket..."
+
+        # Remove all versions
+        aws s3api delete-objects --bucket "$S3_BUCKET_NAME" \
+            --delete "$(aws s3api list-object-versions --bucket "$S3_BUCKET_NAME" --output json --query '{Objects: Versions[].{Key:Key,VersionId:VersionId}}')" 2>/dev/null
+
+        # Remove all delete markers
+        aws s3api delete-objects --bucket "$S3_BUCKET_NAME" \
+            --delete "$(aws s3api list-object-versions --bucket "$S3_BUCKET_NAME" --output json --query '{Objects: DeleteMarkers[].{Key:Key,VersionId:VersionId}}')" 2>/dev/null
+
+        echo "Deleting bucket..."
+        aws s3 rb s3://"$S3_BUCKET_NAME" --force 2>/dev/null && echo "✅ Deleted S3 Bucket"
+    else
+        echo "✅ S3 Bucket already gone. Skipping..."
+    fi
 }
 
 if [ "$1" == "create" ]; then
