@@ -4,6 +4,16 @@
 TF_DIR := terraform
 APP_NAME := tune-grabber
 
+check:
+	@echo "Checking linting..."
+	yarn lint
+	@echo "Checking formatting..."
+	yarn format
+	@echo "Checking types..."
+	yarn type-check
+	@echo "Running tests with coverage..."
+	yarn test:coverage
+
 create: ## 🏗️  Full backend and infrastructure setup
 	@echo "--- Starting Setup ---"
 	./bootstrap.sh create
