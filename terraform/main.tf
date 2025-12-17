@@ -113,6 +113,8 @@ resource "aws_apprunner_service" "app" {
 
         runtime_environment_variables = {
           NODE_ENV        = "production"
+          HOSTNAME        = "0.0.0.0"
+          PORT            = "8080"
           YT_DLP_PATH     = "/usr/local/bin/yt-dlp"
           FFMPEG_PATH     = "/usr/local/bin/ffmpeg"
         }
