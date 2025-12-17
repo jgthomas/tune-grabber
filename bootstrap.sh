@@ -2,7 +2,6 @@
 # --- Configuration ---
 AWS_REGION="eu-west-2"
 S3_BUCKET_NAME="tune-grabber-terraform-state-77443322"
-DYNAMODB_TABLE_NAME="terraform-state-locking"
 ECR_REPO_NAME="tune-grabber"
 export AWS_DEFAULT_REGION=$AWS_REGION
 
@@ -18,18 +17,7 @@ create_backend() {
         aws s3api put-bucket-versioning --bucket "$S3_BUCKET_NAME" --versioning-configuration Status=Enabled
     fi
 
-    # 2. DynamoDB Table Check
-    if aws dynamodb describe-table --table-name "$DYNAMODB_TABLE_NAME" 2>/dev/null; then
-        echo "✅ DynamoDB Table already exists. Skipping..."
-    else
-        echo "Creating DynamoDB Table..."
-        aws dynamodb create-table --table-name "$DYNAMODB_TABLE_NAME" \
-            --attribute-definitions AttributeName=LockID,AttributeType=S \
-            --key-schema AttributeName=LockID,KeyType=HASH \
-            --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
-    fi
-
-    # 3. ECR Repository Check
+    # 2. ECR Repository Check
     if aws ecr describe-repositories --repository-names "$ECR_REPO_NAME" 2>/dev/null; then
         echo "✅ ECR Repository already exists. Skipping..."
     else
@@ -51,14 +39,7 @@ destroy_backend() {
         echo "✅ ECR Repo already gone. Skipping..."
     fi
     
-    # 2. DynamoDB Table Delete/Skip
-    if aws dynamodb describe-table --table-name "$DYNAMODB_TABLE_NAME" 2>/dev/null; then
-        aws dynamodb delete-table --table-name "$DYNAMODB_TABLE_NAME" 2>/dev/null && echo "✅ Deleted DynamoDB Table"
-    else
-        echo "✅ DynamoDB Table already gone. Skipping..."
-    fi
-    
-    # 3. S3 Bucket Delete/Skip (with version purging)
+    # 2. S3 Bucket Delete/Skip (with version purging)
     if aws s3api head-bucket --bucket "$S3_BUCKET_NAME" 2>/dev/null; then
         echo "Cleaning up all versions from S3 bucket..."
 
