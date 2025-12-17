@@ -1,10 +1,10 @@
-.PHONY: setup teardown clean help import
+.PHONY: check create import destroy clean clean-all help
 
 # --- Variables ---
 TF_DIR := terraform
 APP_NAME := tune-grabber
 
-check:
+check: ## 🧪 Run linting, formatting, types, and tests
 	@echo "Checking linting..."
 	yarn lint
 	@echo "Checking formatting..."
@@ -30,8 +30,10 @@ destroy: ## 🧨 Full infrastructure destruction
 	cd $(TF_DIR) && terraform destroy -auto-approve
 	./bootstrap.sh destroy
 
-clean: ## 🧹 Clean local temporary files
+clean: ## 🧹 Clean local media files
 	rm -f *.mp3
+
+clean-all: clean ## 🧹 Clean media AND local Terraform state/cache
 	rm -rf $(TF_DIR)/.terraform/
 	rm -f $(TF_DIR)/terraform.tfstate*
 
