@@ -1,10 +1,7 @@
 # ------------------------------------
 # Stage 1: Build Application
 # ------------------------------------
-FROM node:24-alpine AS builder
-
-# Install required native package for Alpine compatibility
-RUN apk add --no-cache libc6-compat
+FROM node:24-slim AS builder
 
 WORKDIR /app
 
