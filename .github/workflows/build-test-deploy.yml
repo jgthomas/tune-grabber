@@ -85,9 +85,12 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.APP_NAME }}:${{ github.sha }}
             ${{ env.REGISTRY }}/${{ env.APP_NAME }}:latest
+          # Disable supply-chain metadata (faster, simpler builds)
+          provenance: false
+          sbom: false
           # Modern BuildKit caching
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=max,scope=${{ github.repository }}
+          cache-from: type=gha,scope=${{ github.repository }}
 
   # ---------------------------------------------------------
   # Job 3: Infrastructure Deployment

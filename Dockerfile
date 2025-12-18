@@ -14,8 +14,9 @@ COPY package.json yarn.lock .yarnrc.yml ./
 # Copy the entire .yarn directory (Yarn Berry)
 COPY .yarn/ .yarn/
 
-# Install dependencies using Yarn
-RUN yarn install --immutable
+# Install dependencies using Yarn (BuildKit cache)
+RUN --mount=type=cache,target=/app/.yarn/cache \
+    yarn install --immutable
 
 # Copy the rest of the source code
 COPY . .
@@ -27,8 +28,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV YT_DLP_PATH=/usr/local/bin/yt-dlp
 ENV FFMPEG_PATH=/usr/local/bin/ffmpeg
 
-# Run the Next.js production build
-RUN yarn build
+# Run the Next.js production build (cache Next.js build artifacts)
+RUN --mount=type=cache,target=/app/.next/cache \
+    yarn build
 
 # ------------------------------------
 # Stage 2: Production Runtime
