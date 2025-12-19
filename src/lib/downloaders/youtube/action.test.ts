@@ -1,6 +1,7 @@
 import { downloadAction } from './action';
 import ytdlp from '@/lib/downloaders/youtube/ytdlp-wrapper';
 import { validateUrlString } from '@/lib/validators/url';
+import { url } from 'inspector';
 
 jest.mock('@/lib/downloaders/youtube/ytdlp-wrapper', () => ({
   __esModule: true,
@@ -56,7 +57,7 @@ describe('downloadAction', () => {
           filter: 'audioonly',
           type: 'mp3',
         },
-        output: expect.stringMatching(/^audio-\d+\.mp3$/),
+        output: expect.stringMatching(/^\/tmp\/audio-\d+\.mp3$/),
         onProgress: expect.any(Function),
       }),
     );
@@ -67,7 +68,8 @@ describe('downloadAction', () => {
 
     expect(result).toEqual({
       success: true,
-      message: 'Download completed successfully!',
+      message: 'Download finished (Local mode: check /tmp)',
+      url: null,
     });
 
     consoleLogSpy.mockRestore();

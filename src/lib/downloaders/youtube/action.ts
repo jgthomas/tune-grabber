@@ -1,7 +1,9 @@
 'use server';
 
+import path from 'path';
 import ytdlp from './ytdlp-wrapper';
 import { validateUrlString } from '@/lib/validators/url';
+import { s3Service } from '@/lib/aws/s3-service';
 
 const YOUTUBE_DOMAINS = [
   'youtube.com',
@@ -15,6 +17,7 @@ export type DownloadState = {
   success: boolean;
   message: string;
   progress?: number;
+  url?: string | null;
 } | null;
 
 export async function downloadAction(
@@ -30,21 +33,37 @@ export async function downloadAction(
   try {
     validateUrlString(yturl, { permittedHosts: YOUTUBE_DOMAINS });
 
+    const fileName = `audio-${Date.now()}.mp3`;
+    const tempDir = '/tmp';
+    const fullPath = path.join(tempDir, fileName);
+
+    let downloadLink = null;
+
     const output = await ytdlp.downloadAsync(yturl, {
       format: {
         filter: 'audioonly',
         type: 'mp3',
       },
-      output: `audio-${Date.now()}.mp3`,
+      output: fullPath,
       onProgress: (progress) => {
         console.log('Progress:', progress);
       },
     });
 
     console.log('Download completed:', output);
+
+    if (s3Service.isConfigured()) {
+      console.log('S3 detected, uploading...');
+      await s3Service.uploadFile(fullPath, fileName);
+      downloadLink = await s3Service.getDownloadLink(fileName);
+    }
+
     return {
       success: true,
-      message: 'Download completed successfully!',
+      message: s3Service.isConfigured()
+        ? 'File ready!'
+        : 'Download finished (Local mode: check /tmp)',
+      url: downloadLink,
     };
   } catch (error) {
     console.error('Server Action Error:', error);
