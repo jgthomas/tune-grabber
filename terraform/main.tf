@@ -27,7 +27,9 @@ resource "aws_ecr_repository" "app" {
   }
 }
 
-# --- 2. IAM Role for App Runner (Execution Role - PULLS IMAGE & LOGS) ---
+# --- 2. IAM Roles ---
+#
+# --- App Runner (Execution Role - PULLS IMAGE & LOGS) ---
 resource "aws_iam_role" "apprunner_execution" {
   name = "${var.app_name}-apprunner-execution-role"
 
@@ -48,7 +50,7 @@ resource "aws_iam_role_policy_attachment" "apprunner_execution_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess"
 }
 
-# --- NEW: IAM Role for App Runner (Instance Role - APPLICATION PERMISSIONS) ---
+# --- App Runner (Instance Role - APPLICATION PERMISSIONS) ---
 # This role grants permissions to the application code itself (e.g., S3 access, Secrets Manager)
 resource "aws_iam_role" "apprunner_instance" {
   name = "${var.app_name}-apprunner-instance-role"
@@ -59,14 +61,37 @@ resource "aws_iam_role" "apprunner_instance" {
       Action = "sts:AssumeRole"
       Effect = "Allow"
       Principal = {
-        # The same principal is used for the instance role
         Service = "tasks.apprunner.amazonaws.com"
       }
     }]
   })
+}
 
-  # NOTE: Attach policies here (e.g., S3 ReadOnly, SecretsManagerReadWrite) 
-  # This example uses no policy for minimum changes, but you must add one if needed.
+resource "aws_iam_policy" "app_s3_access" {
+  name        = "${var.app_name}-s3-access"
+  description = "Allows App Runner to upload and generate links for S3"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:ListBucket"
+        ]
+        Effect   = "Allow"
+        Resource = [
+          aws_s3_bucket.media.arn,
+          "${aws_s3_bucket.media.arn}/*"
+        ]
+      }
+    ]
+  })
+}
+resource "aws_iam_role_policy_attachment" "attach_s3_access" {
+  role       = aws_iam_role.apprunner_instance.name
+  policy_arn = aws_iam_policy.app_s3_access.arn
 }
 
 # --- 3. App Runner Auto Scaling Configuration (COST OPTIMIZED) ---
@@ -117,6 +142,8 @@ resource "aws_apprunner_service" "app" {
           PORT            = "8080"
           YT_DLP_PATH     = "/usr/local/bin/yt-dlp"
           FFMPEG_PATH     = "/usr/local/bin/ffmpeg"
+          S3_BUCKET_NAME  = aws_s3_bucket.media.id
+          AWS_REGION      = var.aws_region
         }
       }
     }
@@ -144,6 +171,48 @@ resource "aws_apprunner_service" "app" {
   }
 }
 
+# --- 5. S3 Bucket for Media Storage ---
+resource "aws_s3_bucket" "media" {
+  bucket        = "${var.app_name}-media-storage-${random_id.bucket_suffix.hex}"
+  force_destroy = true # Allows terraform destroy to work even if files exist
+
+  tags = {
+    Name        = "Media Storage"
+    Environment = "production"
+  }
+}
+
+# Generate a unique suffix because S3 names must be globally unique
+resource "random_id" "bucket_suffix" {
+  byte_length = 4
+}
+
+# Block all public access (Crucial for security)
+resource "aws_s3_bucket_public_access_block" "media_privacy" {
+  bucket                  = aws_s3_bucket.media.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+# Auto-delete files after 24 hours to save money
+resource "aws_s3_bucket_lifecycle_configuration" "media_cleanup" {
+  bucket = aws_s3_bucket.media.id
+
+  rule {
+    id     = "auto-delete-temp-files"
+    status = "Enabled"
+
+    # Explicitly apply to all objects in the bucket
+    filter {}
+
+    expiration {
+      days = 1
+    }
+  }
+}
+
 # --- Outputs ---
 output "ecr_repository_url" {
   value       = aws_ecr_repository.app.repository_url
@@ -163,4 +232,9 @@ output "apprunner_service_id" {
 output "apprunner_service_arn" {
   value       = aws_apprunner_service.app.arn
   description = "App Runner service ARN"
+}
+
+output "s3_bucket_name" {
+  value       = aws_s3_bucket.media.id
+  description = "S3 bucket to store media downloads"
 }
