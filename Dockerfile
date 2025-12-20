@@ -23,7 +23,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 # Set executable path environment variables for build time
 ENV YT_DLP_PATH=/usr/local/bin/yt-dlp
-ENV FFMPEG_PATH=/usr/local/bin/ffmpeg
+ENV FFMPEG_PATH=/usr/bin/ffmpeg
 
 # Run the Next.js production build (cache Next.js build artifacts)
 RUN --mount=type=cache,target=/app/.next/cache \
@@ -36,11 +36,13 @@ FROM node:24-slim AS runner
 
 # Install ffmpeg and yt-dlp
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl ffmpeg ca-certificates \
+    && apt-get install -y --no-install-recommends curl ffmpeg ca-certificates python3 \
     && curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
     && chmod a+rx /usr/local/bin/yt-dlp \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+RUN ln -s /usr/bin/python3 /usr/bin/python
 
 # Create a non-root user for security
 RUN addgroup --system --gid 1001 nodejs
@@ -60,7 +62,7 @@ RUN chown -R nextjs:nodejs /app
 
 # Set executable path environment variables
 ENV YT_DLP_PATH=/usr/local/bin/yt-dlp
-ENV FFMPEG_PATH=/usr/local/bin/ffmpeg
+ENV FFMPEG_PATH=/usr/bin/ffmpeg
 
 # Switch to the non-root user
 USER nextjs

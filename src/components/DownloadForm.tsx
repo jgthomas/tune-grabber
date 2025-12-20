@@ -5,6 +5,7 @@ import { downloadAction, type DownloadState } from '@/lib/downloaders/youtube/ac
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { FormAlert } from '@/components/ui/FormAlert';
 import { UrlInput } from '@/components/form/UrlInput';
+import { DownloadLink } from '@/components/form/DownloadLink';
 
 export default function DownloadForm() {
   const [state, formAction] = useActionState<DownloadState, FormData>(downloadAction, null);
@@ -24,6 +25,8 @@ export default function DownloadForm() {
         <SubmitButton pendingText="Processing..." defaultText="Download Audio" />
 
         {state && <FormAlert success={state.success} message={state.message} />}
+
+        {state?.success && state.url && <DownloadLink url={state.url} />}
       </form>
     </div>
   );

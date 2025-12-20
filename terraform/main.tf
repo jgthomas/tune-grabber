@@ -141,7 +141,7 @@ resource "aws_apprunner_service" "app" {
           HOSTNAME        = "0.0.0.0"
           PORT            = "8080"
           YT_DLP_PATH     = "/usr/local/bin/yt-dlp"
-          FFMPEG_PATH     = "/usr/local/bin/ffmpeg"
+          FFMPEG_PATH     = "/usr/bin/ffmpeg"
           S3_BUCKET_NAME  = aws_s3_bucket.media.id
           AWS_REGION      = var.aws_region
         }

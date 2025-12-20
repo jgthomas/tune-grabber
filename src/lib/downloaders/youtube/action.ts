@@ -1,6 +1,7 @@
 'use server';
 
 import path from 'path';
+import { promises as fs } from 'fs';
 import ytdlp from './ytdlp-wrapper';
 import { validateUrlString } from '@/lib/validators/url';
 import { s3Service } from '@/lib/aws/s3-service';
@@ -30,12 +31,12 @@ export async function downloadAction(
     return { success: false, message: 'Please enter a valid URL.' };
   }
 
+  const fileName = `audio-${Date.now()}.mp3`;
+  const tempDir = '/tmp';
+  const fullPath = path.join(tempDir, fileName);
+
   try {
     validateUrlString(yturl, { permittedHosts: YOUTUBE_DOMAINS });
-
-    const fileName = `audio-${Date.now()}.mp3`;
-    const tempDir = '/tmp';
-    const fullPath = path.join(tempDir, fileName);
 
     let downloadLink = null;
 
@@ -74,5 +75,15 @@ export async function downloadAction(
       success: false,
       message: `Failed to download: ${errorMessage}`,
     };
+  } finally {
+    try {
+      if (s3Service.isConfigured()) {
+        await fs.unlink(fullPath);
+        console.log(`Cleaned up temporary file: ${fullPath}`);
+      }
+      console.log('Running locally so no cleanup needed.');
+    } catch (unlinkError) {
+      console.error('Failed to delete temp file:', unlinkError);
+    }
   }
 }
