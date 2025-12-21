@@ -1,7 +1,6 @@
 import { downloadAction } from './action';
 import ytdlp from '@/lib/downloaders/youtube/ytdlp-wrapper';
 import { validateUrlString } from '@/lib/validators/url';
-import { url } from 'inspector';
 
 jest.mock('@/lib/downloaders/youtube/ytdlp-wrapper', () => ({
   __esModule: true,
