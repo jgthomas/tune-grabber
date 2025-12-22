@@ -1,4 +1,9 @@
 # ------------------------------------
+# Stage 0: Source Deno Binary
+# ------------------------------------
+FROM denoland/deno:bin AS deno_bin
+
+# ------------------------------------
 # Stage 1: Build Application
 # ------------------------------------
 FROM node:24-slim AS builder
@@ -34,11 +39,15 @@ RUN --mount=type=cache,target=/app/.next/cache \
 # ------------------------------------
 FROM node:24-slim AS runner
 
+# Copy Deno binary from Stage 0
+COPY --from=deno_bin /deno /usr/local/bin/deno
+
 # Install ffmpeg and yt-dlp
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl ffmpeg ca-certificates python3 \
     && curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
     && chmod a+rx /usr/local/bin/yt-dlp \
+    && chmod a+rx /usr/local/bin/deno \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
