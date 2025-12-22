@@ -46,6 +46,11 @@ export async function downloadAction(
         type: 'mp3',
       },
       output: fullPath,
+      // Pass runtime and Android client args to get better compatibility
+      ...({
+        'js-runtimes': 'node',
+        'extractor-args': 'youtube:player-client=android',
+      } as any),
       onProgress: (progress) => {
         console.log('Progress:', progress);
       },
