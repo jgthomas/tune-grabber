@@ -50,7 +50,7 @@ export async function downloadAction(
       ...({
         'js-runtimes': 'node',
         'extractor-args': 'youtube:player-client=android',
-      } as any),
+      } as Record<string, string>),
       onProgress: (progress) => {
         console.log('Progress:', progress);
       },
