@@ -1,4 +1,4 @@
-import { downloadVideoAndExtractAudioToMp3 } from './ytdl';
+import { downloadVideoAndExtractAudioToMp3, YOUTUBE_DOMAINS } from './ytdl';
 import ytdlp from '@/lib/downloaders/youtube/ytdlp-wrapper';
 import { validateUrlString } from '@/lib/validators/url';
 
@@ -15,6 +15,7 @@ jest.mock('@/lib/validators/url', () => ({
 
 describe('downloadVideoAndExtractAudioToMp3', () => {
   const validYoutubeUrl = 'https://www.youtube.com/watch?v=abc123';
+  const testOutputPath = 'test-audio.mp3';
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -25,16 +26,10 @@ describe('downloadVideoAndExtractAudioToMp3', () => {
 
     const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
-    await downloadVideoAndExtractAudioToMp3(validYoutubeUrl);
+    await downloadVideoAndExtractAudioToMp3(validYoutubeUrl, testOutputPath);
 
     expect(validateUrlString).toHaveBeenCalledWith(validYoutubeUrl, {
-      permittedHosts: [
-        'youtube.com',
-        'www.youtube.com',
-        'youtu.be',
-        'm.youtube.com',
-        'music.youtube.com',
-      ],
+      permittedHosts: YOUTUBE_DOMAINS,
     });
 
     expect(ytdlp.downloadAsync).toHaveBeenCalledWith(
@@ -58,18 +53,18 @@ describe('downloadVideoAndExtractAudioToMp3', () => {
     consoleLogSpy.mockRestore();
   });
 
-  it('logs an error if validation throws', async () => {
+  it('propogates an error if validation fails (caller handles it)', async () => {
     const error = new Error('Invalid URL');
     (validateUrlString as jest.Mock).mockImplementation(() => {
       throw error;
     });
 
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    // 🚀 CRITICAL: Use .rejects to catch the error thrown by the function
+    await expect(downloadVideoAndExtractAudioToMp3('not-a-url', testOutputPath)).rejects.toThrow(
+      'Invalid URL',
+    );
 
-    await downloadVideoAndExtractAudioToMp3('not-a-url');
-
-    expect(consoleErrorSpy).toHaveBeenCalledWith('Error:', error);
-
-    consoleErrorSpy.mockRestore();
+    // Verify ytdlp was never called because validation failed first
+    expect(ytdlp.downloadAsync).not.toHaveBeenCalled();
   });
 });

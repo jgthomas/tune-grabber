@@ -2,17 +2,8 @@
 
 import path from 'path';
 import { promises as fs } from 'fs';
-import ytdlp from './ytdlp-wrapper';
-import { validateUrlString } from '@/lib/validators/url';
+import { downloadVideoAndExtractAudioToMp3 } from './ytdl';
 import { s3Service } from '@/lib/aws/s3-service';
-
-const YOUTUBE_DOMAINS = [
-  'youtube.com',
-  'www.youtube.com',
-  'youtu.be',
-  'm.youtube.com',
-  'music.youtube.com',
-];
 
 export type DownloadState = {
   success: boolean;
@@ -36,22 +27,9 @@ export async function downloadAction(
   const fullPath = path.join(tempDir, fileName);
 
   try {
-    validateUrlString(yturl, { permittedHosts: YOUTUBE_DOMAINS });
-
     let downloadLink = null;
 
-    const output = await ytdlp.downloadAsync(yturl, {
-      format: {
-        filter: 'audioonly',
-        type: 'mp3',
-      },
-      output: fullPath,
-      onProgress: (progress) => {
-        console.log('Progress:', progress);
-      },
-    });
-
-    console.log('Download completed:', output);
+    await downloadVideoAndExtractAudioToMp3(yturl, fullPath);
 
     if (s3Service.isConfigured()) {
       console.log('S3 detected, uploading...');
