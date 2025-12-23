@@ -57,6 +57,8 @@ export async function downloadAction(
       console.log('S3 detected, uploading...');
       await s3Service.uploadFile(fullPath, fileName);
       downloadLink = await s3Service.getDownloadLink(fileName);
+    } else {
+      downloadLink = `/api/download?file=${fileName}`;
     }
 
     return {

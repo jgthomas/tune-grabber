@@ -68,7 +68,7 @@ describe('downloadAction', () => {
     expect(result).toEqual({
       success: true,
       message: 'Download finished (Local mode: check /tmp)',
-      url: null,
+      url: expect.stringMatching(/^\/api\/download\?file=/),
     });
 
     consoleLogSpy.mockRestore();
