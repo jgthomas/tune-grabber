@@ -27,3 +27,25 @@ export async function downloadVideoAndExtractAudioToMp3(yturl: string, fullPath:
 
   return output;
 }
+
+export async function getVideoTitle(yturl: string): Promise<string> {
+  validateUrlString(yturl, { permittedHosts: YOUTUBE_DOMAINS });
+
+  try {
+    const result = await ytdlp.execAsync(yturl, {
+      print: '%(title)s',
+      noDownload: true,
+      onData: (data) => {
+        console.log('Raw data:', data);
+      },
+    });
+
+    console.log('Title result:', result);
+
+    // Sanitize the filename by removing invalid characters
+    return result.trim().replace(/[/\\?%*:|"<>]/g, '-');
+  } catch (error) {
+    console.error('Error getting video title:', error);
+    throw error;
+  }
+}

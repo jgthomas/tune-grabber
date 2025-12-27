@@ -2,7 +2,7 @@
 
 import path from 'path';
 import { promises as fs } from 'fs';
-import { downloadVideoAndExtractAudioToMp3 } from './ytdl';
+import { downloadVideoAndExtractAudioToMp3, getVideoTitle } from './ytdl';
 import { s3Service } from '@/lib/aws/s3-service';
 
 export type DownloadState = {
@@ -22,12 +22,15 @@ export async function downloadAction(
     return { success: false, message: 'Please enter a valid URL.' };
   }
 
-  const fileName = `audio-${Date.now()}.mp3`;
   const tempDir = '/tmp';
-  const fullPath = path.join(tempDir, fileName);
+  let fullPath = '';
 
   try {
     let downloadLink = null;
+
+    const title = await getVideoTitle(yturl);
+    const fileName = `${title}.mp3`;
+    fullPath = path.join(tempDir, `${title}.mp3`);
 
     await downloadVideoAndExtractAudioToMp3(yturl, fullPath);
 
