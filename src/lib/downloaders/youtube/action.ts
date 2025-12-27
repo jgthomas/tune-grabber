@@ -30,7 +30,7 @@ export async function downloadAction(
 
     const title = await getVideoTitle(yturl);
     const fileName = `${title}.mp3`;
-    fullPath = path.join(tempDir, `${title}.mp3`);
+    fullPath = path.join(tempDir, fileName);
 
     await downloadVideoAndExtractAudioToMp3(yturl, fullPath);
 
