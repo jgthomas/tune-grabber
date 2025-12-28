@@ -6,6 +6,7 @@ jest.mock('@/lib/downloaders/youtube/ytdlp-wrapper', () => ({
   __esModule: true,
   default: {
     downloadAsync: jest.fn(),
+    execAsync: jest.fn(),
   },
 }));
 
@@ -33,6 +34,8 @@ describe('downloadAction', () => {
     const formData = new FormData();
     formData.set('urlInput', 'https://www.youtube.com/watch?v=abc123');
 
+    (ytdlp.execAsync as jest.Mock).mockResolvedValue('TestVideoTitle');
+
     (ytdlp.downloadAsync as jest.Mock).mockResolvedValue('ok');
 
     const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
@@ -56,7 +59,7 @@ describe('downloadAction', () => {
           filter: 'audioonly',
           type: 'mp3',
         },
-        output: expect.stringMatching(/^\/tmp\/audio-\d+\.mp3$/),
+        output: expect.stringMatching(/^\/tmp\/TestVideoTitle\.mp3$/),
         onProgress: expect.any(Function),
       }),
     );
@@ -100,6 +103,11 @@ describe('downloadAction', () => {
 
     // Ensure validation passes
     (validateUrlString as jest.Mock).mockImplementation(() => {});
+
+    // execAsync return a title
+    (ytdlp.execAsync as jest.Mock).mockImplementation(() => {
+      throw 'TestVideoTitle';
+    });
 
     // Make downloadAsync throw a string instead of Error
     (ytdlp.downloadAsync as jest.Mock).mockImplementation(() => {
