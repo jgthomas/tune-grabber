@@ -4,6 +4,8 @@ import { Readable } from 'stream';
 import { finished } from 'stream/promises';
 import path from 'path';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const fileName = searchParams.get('file');
