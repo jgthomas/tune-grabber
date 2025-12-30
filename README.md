@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## tune-grabber — lightweight YouTube audio downloader
 
-## Getting Started
+- Purpose: provide a small web UI and API to download YouTube audio and return an MP3 file.
+- Tech: Next.js (App Router), server-side downloaders using a `ytdlp` wrapper, S3 upload helpers, and URL validation.
 
-First, run the development server:
+### Quick overview
+
+- `src/app/api/download/route.ts` — streaming download API that serves files from `/tmp`.
+- `src/lib/downloaders/youtube/*` — wrappers around `ytdlp-nodejs`
+- `src/lib/aws/s3-service.ts` — helpers for uploading downloaded assets to S3.
+
+###Developer commands
 
 ```bash
-npm run dev
-# or
+# Install
+yarn install
+
+# Run tests
+yarn test
+
+# Run dev server
 yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Running with Docker
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+You can run the app locally in a container:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+# Start-up
+make up
 
-## Learn More
+# Teardown
+make down
+```
 
-To learn more about Next.js, take a look at the following resources:
+### Deployment: AWS App Runner & Terraform
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+This project includes Terraform scripts (see `terraform/`) to deploy the app to AWS App Runner. The infrastructure includes:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Containerized app build and deploy
+- S3 bucket for storing downloaded audio
+- Usage and cost monitoring
 
-## Deploy on Vercel
+#### To deploy
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Configure your AWS credentials
+2. Run the `bootstrap.sh` script
+3. Run the deploy pipeline on `main` branch
+4. App Runner will launch the service
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
