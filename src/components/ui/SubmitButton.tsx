@@ -1,6 +1,7 @@
 'use client';
 
 import { useFormStatus } from 'react-dom';
+import { LoaderCircle } from 'lucide-react';
 
 interface SubmitButtonProps {
   pendingText?: string;
@@ -19,11 +20,20 @@ export function SubmitButton({
     <button
       type="submit"
       disabled={pending}
-      className={`px-4 py-2 rounded font-medium transition-colors ${
-        pending ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'
-      } text-white ${className}`}
+      className={`flex w-full items-center justify-center rounded-md px-4 py-3 font-semibold text-white transition-colors ${
+        pending
+          ? 'bg-zinc-500 cursor-not-allowed'
+          : 'bg-zinc-800 hover:bg-zinc-900 dark:bg-zinc-700 dark:hover:bg-zinc-800'
+      } ${className}`}
     >
-      {pending ? pendingText : defaultText}
+      {pending ? (
+        <>
+          <LoaderCircle className="mr-2 h-5 w-5 animate-spin" />
+          {pendingText}
+        </>
+      ) : (
+        defaultText
+      )}
     </button>
   );
 }
