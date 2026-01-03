@@ -132,22 +132,22 @@ The project should have git hooks set up to run linting, formatting, and tests b
 The application is deployed to AWS App Runner using a CI/CD pipeline powered by GitHub Actions. The workflow is defined in `.github/workflows/build-test-deploy.yml` and consists of three jobs:
 
 1.  **`build-and-test`**: This job runs on every push and pull request. It performs the following steps:
-    *   Checks out the repository.
-    *   Sets up Node.js 24.
-    *   Installs dependencies using `yarn install`.
-    *   Runs quality checks: `yarn lint`, `yarn type-check`, `yarn test`, and `yarn build`.
+    - Checks out the repository.
+    - Sets up Node.js 24.
+    - Installs dependencies using `yarn install`.
+    - Runs quality checks: `yarn lint`, `yarn type-check`, `yarn test`, and `yarn build`.
 
 2.  **`docker-build-and-push`**: This job runs after `build-and-test` succeeds and only on pushes to the `main` branch. It is responsible for:
-    *   Building a Docker image of the application.
-    *   Tagging the image with the Git SHA and `latest`.
-    *   Pushing the image to the Amazon ECR repository.
+    - Building a Docker image of the application.
+    - Tagging the image with the Git SHA and `latest`.
+    - Pushing the image to the Amazon ECR repository.
 
 3.  **`deploy`**: This job runs after `docker-build-and-push` succeeds, also only on pushes to the `main` branch. It handles the infrastructure deployment using Terraform:
-    *   Configures AWS credentials.
-    *   Sets up Terraform.
-    *   Initializes Terraform with `terraform init`.
-    *   Creates a Terraform plan, passing the Docker image tag from the previous job as a variable.
-    *   Applies the Terraform plan automatically with `terraform apply -auto-approve tfplan`.
+    - Configures AWS credentials.
+    - Sets up Terraform.
+    - Initializes Terraform with `terraform init`.
+    - Creates a Terraform plan, passing the Docker image tag from the previous job as a variable.
+    - Applies the Terraform plan automatically with `terraform apply -auto-approve tfplan`.
 
 This automated workflow ensures that every push to the `main` branch that passes the quality checks is automatically built, pushed to ECR, and deployed to AWS App Runner.
 
