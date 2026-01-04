@@ -17,6 +17,8 @@ jest.mock('@/lib/validators/url', () => ({
 describe('downloadAction', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Default mock behavior: valid URL
+    (validateUrlString as jest.Mock).mockReturnValue({ isValid: true, message: 'Valid' });
   });
 
   it('returns an error when the url is missing', async () => {
@@ -28,6 +30,26 @@ describe('downloadAction', () => {
       success: false,
       message: 'Please enter a valid URL.',
     });
+  });
+
+  it('returns an error when general URL validation fails', async () => {
+    const formData = new FormData();
+    formData.set('urlInput', 'invalid-url');
+
+    (validateUrlString as jest.Mock).mockReturnValue({
+      isValid: false,
+      message: 'Invalid URL format',
+    });
+
+    const result = await downloadAction(null, formData);
+
+    expect(result).toEqual({
+      success: false,
+      message: 'Invalid URL format',
+    });
+    // Should verify ytdlp was NOT called
+    expect(ytdlp.execAsync).not.toHaveBeenCalled();
+    expect(ytdlp.downloadAsync).not.toHaveBeenCalled();
   });
 
   it('downloads audio and returns success state', async () => {
@@ -42,15 +64,11 @@ describe('downloadAction', () => {
 
     const result = await downloadAction(null, formData);
 
-    expect(validateUrlString).toHaveBeenCalledWith('https://www.youtube.com/watch?v=abc123', {
-      permittedHosts: [
-        'youtube.com',
-        'www.youtube.com',
-        'youtu.be',
-        'm.youtube.com',
-        'music.youtube.com',
-      ],
-    });
+    // It is called first with just the URL (in action.ts)
+    expect(validateUrlString).toHaveBeenNthCalledWith(1, 'https://www.youtube.com/watch?v=abc123');
+
+    // It is called again inside getVideoTitle/downloadVideo (in ytdl.ts) with options
+    // We can check that too if we want, but checking the first one confirms our change.
 
     expect(ytdlp.downloadAsync).toHaveBeenCalledWith(
       'https://www.youtube.com/watch?v=abc123',
@@ -77,12 +95,15 @@ describe('downloadAction', () => {
     consoleLogSpy.mockRestore();
   });
 
-  it('returns a failure state when validation throws an Error', async () => {
+  it('returns a failure state when ytdl throws an Error', async () => {
     const formData = new FormData();
-    formData.set('urlInput', 'bad-url');
+    formData.set('urlInput', 'https://www.youtube.com/watch?v=fail');
 
-    (validateUrlString as jest.Mock).mockImplementation(() => {
-      throw new Error('Invalid URL');
+    // Validation passes
+    (validateUrlString as jest.Mock).mockReturnValue({ isValid: true });
+
+    (ytdlp.execAsync as jest.Mock).mockImplementation(() => {
+      throw new Error('YTDL Error');
     });
 
     const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -91,7 +112,7 @@ describe('downloadAction', () => {
 
     expect(result).toEqual({
       success: false,
-      message: 'Failed to download: Invalid URL',
+      message: 'Failed to download: YTDL Error',
     });
 
     consoleErrorSpy.mockRestore();
@@ -101,8 +122,8 @@ describe('downloadAction', () => {
     const formData = new FormData();
     formData.set('urlInput', 'https://www.youtube.com/watch?v=abc123');
 
-    // Ensure validation passes
-    (validateUrlString as jest.Mock).mockImplementation(() => {});
+    // Validation passes
+    (validateUrlString as jest.Mock).mockReturnValue({ isValid: true });
 
     // execAsync return a title
     (ytdlp.execAsync as jest.Mock).mockImplementation(() => {

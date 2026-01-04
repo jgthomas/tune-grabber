@@ -4,6 +4,7 @@ import path from 'path';
 import { promises as fs } from 'fs';
 import { downloadVideoAndExtractAudioToMp3, getVideoTitle } from './ytdl';
 import { s3Service } from '@/lib/aws/s3-service';
+import { validateUrlString } from '@/lib/validators/url';
 
 export type DownloadState = {
   success: boolean;
@@ -20,6 +21,11 @@ export async function downloadAction(
 
   if (!yturl || typeof yturl !== 'string') {
     return { success: false, message: 'Please enter a valid URL.' };
+  }
+
+  const validation = validateUrlString(yturl);
+  if (!validation.isValid) {
+    return { success: false, message: validation.message };
   }
 
   const tempDir = '/tmp';
