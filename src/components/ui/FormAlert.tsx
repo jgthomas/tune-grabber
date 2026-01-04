@@ -7,16 +7,20 @@ interface FormAlertProps {
 
 export function FormAlert({ success, message }: FormAlertProps) {
   const Icon = success ? CircleCheck : CircleX;
+  // Use slightly more vibrant/modern alert colors
   const colorClasses = success
-    ? 'bg-green-100/50 border-green-200/80 text-green-800 dark:bg-green-900/50 dark:border-green-800/80 dark:text-green-200'
-    : 'bg-red-100/50 border-red-200/80 text-red-800 dark:bg-red-900/50 dark:border-red-800/80 dark:text-red-200';
+    ? 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-900/30 dark:border-emerald-800 dark:text-emerald-200'
+    : 'bg-rose-50 border-rose-200 text-rose-800 dark:bg-rose-900/30 dark:border-rose-800 dark:text-rose-200';
 
   return (
-    <div role="alert" className={`flex items-center gap-4 rounded-lg border p-4 ${colorClasses}`}>
-      <Icon className="h-6 w-6" />
+    <div
+      role="alert"
+      className={`flex items-start gap-4 rounded-lg border p-4 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300 ${colorClasses}`}
+    >
+      <Icon className="h-5 w-5 mt-0.5 shrink-0" />
       <div className="flex-1">
-        <p className="font-semibold">{success ? 'Success' : 'Error'}</p>
-        <p className="text-sm">{message}</p>
+        <p className="font-semibold text-sm">{success ? 'Success' : 'Error'}</p>
+        <p className="text-sm opacity-90">{message}</p>
       </div>
     </div>
   );

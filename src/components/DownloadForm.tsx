@@ -18,8 +18,8 @@ export default function DownloadForm() {
   }, [state]);
 
   return (
-    <div className="w-full max-w-md mx-auto p-6 pt-12">
-      <form ref={formRef} action={formAction} className="flex flex-col gap-4">
+    <div className="w-full">
+      <form ref={formRef} action={formAction} className="flex flex-col gap-5">
         <UrlInput />
 
         <SubmitButton pendingText="Processing..." defaultText="Download Audio" />

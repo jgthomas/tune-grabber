@@ -20,10 +20,10 @@ export function SubmitButton({
     <button
       type="submit"
       disabled={pending}
-      className={`flex w-full items-center justify-center rounded-md px-4 py-3 font-semibold text-white transition-colors ${
+      className={`flex w-full items-center justify-center rounded-lg px-4 py-3 font-semibold text-white transition-all duration-200 ease-in-out ${
         pending
-          ? 'bg-zinc-500 cursor-not-allowed'
-          : 'bg-zinc-800 hover:bg-zinc-900 dark:bg-zinc-700 dark:hover:bg-zinc-800'
+          ? 'bg-zinc-500 cursor-not-allowed opacity-80'
+          : 'bg-indigo-600 hover:bg-indigo-700 hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-lg dark:bg-indigo-600 dark:hover:bg-indigo-500'
       } ${className}`}
     >
       {pending ? (

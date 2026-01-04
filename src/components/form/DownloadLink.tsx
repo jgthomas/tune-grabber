@@ -6,21 +6,32 @@ interface DownloadLinkProps {
 
 export function DownloadLink({ url }: DownloadLinkProps) {
   return (
-    <div className="mt-4 p-6 border border-green-200 dark:border-green-800 rounded-lg bg-green-50/20 dark:bg-green-900/20 flex flex-col items-center gap-4 text-center">
-      <p className="text-base font-medium text-green-700 dark:text-green-300">
-        Your audio is ready!
-      </p>
+    <div className="mt-6 p-6 border border-emerald-200/50 dark:border-emerald-800/50 rounded-xl bg-gradient-to-b from-emerald-50/50 to-emerald-100/30 dark:from-emerald-900/20 dark:to-emerald-900/10 backdrop-blur-sm flex flex-col items-center gap-4 text-center animate-in zoom-in-95 duration-300">
+      <div className="rounded-full bg-emerald-100 dark:bg-emerald-900/50 p-3">
+        <Download className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+      </div>
+
+      <div className="space-y-1">
+        <p className="text-base font-medium text-zinc-900 dark:text-zinc-100">
+          Your audio is ready!
+        </p>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          Click the button below to save your file.
+        </p>
+      </div>
+
       <a
         href={url}
         target="_blank"
         rel="noopener noreferrer"
         download
-        className="flex items-center gap-3 bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-md font-semibold transition-transform duration-300 ease-in-out hover:scale-105"
+        className="group relative flex items-center justify-center gap-2 w-full bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
       >
-        <Download size={22} />
-        Download MP3
+        <span>Download MP3</span>
+        <Download size={18} className="transition-transform group-hover:translate-y-0.5" />
       </a>
-      <p className="text-xs text-zinc-500 dark:text-zinc-400">This link will expire in 1 hour.</p>
+
+      <p className="text-xs text-zinc-400 dark:text-zinc-500 pt-2">Link expires in 1 hour</p>
     </div>
   );
 }
