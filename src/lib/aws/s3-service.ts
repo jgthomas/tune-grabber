@@ -1,12 +1,12 @@
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { readFileSync } from 'fs';
+import { config } from '@/lib/config';
 
 // The client automatically picks up credentials from IAM Role or Env Vars
-const s3Client = new S3Client({ region: process.env.AWS_REGION });
-const BUCKET_NAME = process.env.S3_BUCKET_NAME;
+const s3Client = new S3Client({ region: config.aws.region });
 
-const isConfigured = () => !!BUCKET_NAME;
+const isConfigured = () => !!config.aws.s3BucketName;
 
 export const s3Service = {
   isConfigured,
@@ -17,7 +17,7 @@ export const s3Service = {
     const fileBuffer = readFileSync(localPath);
 
     const command = new PutObjectCommand({
-      Bucket: BUCKET_NAME,
+      Bucket: config.aws.s3BucketName,
       Key: fileName,
       Body: fileBuffer,
       ContentType: contentType,
@@ -30,7 +30,7 @@ export const s3Service = {
     if (!this.isConfigured()) return null;
 
     const command = new GetObjectCommand({
-      Bucket: BUCKET_NAME,
+      Bucket: config.aws.s3BucketName,
       Key: fileName,
     });
 
