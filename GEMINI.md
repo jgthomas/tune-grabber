@@ -154,3 +154,13 @@ This automated workflow ensures that every push to the `main` branch that passes
 ### Manual Deployment
 
 While the primary deployment method is through the CI/CD pipeline, manual deployment is still possible for development or debugging purposes. The `Makefile` and `bootstrap.sh` script provide the necessary commands for this. For more information, refer to the `Makefile` and the Terraform configuration in the `terraform` directory.
+
+## Agent Workflows
+
+### Pre-Completion Checks
+
+Before marking a task as complete, always perform the following sequence:
+
+1.  **Run Checks:** Execute `make check` to run linting, formatting, type checking, and tests.
+2.  **Fix Issues:** If any errors occur, analyze the output and attempt to fix them autonomously.
+3.  **Verify:** Only report the task as complete once `make check` passes successfully.
