@@ -9,7 +9,7 @@ export default function Home() {
         <div className="absolute -bottom-24 -left-24 h-48 w-48 rounded-full bg-violet-500/20 blur-3xl dark:bg-violet-500/10" />
 
         <div className="relative flex flex-col items-center justify-center space-y-6 text-center">
-          <h1 className="bg-gradient-to-br from-indigo-600 to-violet-600 bg-clip-text text-5xl font-extrabold tracking-tight text-transparent dark:from-indigo-400 dark:to-violet-400 md:text-6xl">
+          <h1 className="bg-linear-to-br from-indigo-600 to-violet-600 bg-clip-text text-5xl font-extrabold tracking-tight text-transparent dark:from-indigo-400 dark:to-violet-400 md:text-6xl">
             Tune Grabber
           </h1>
           <p className="text-lg text-zinc-600 dark:text-zinc-300 max-w-sm leading-relaxed md:max-w-lg md:text-xl">
