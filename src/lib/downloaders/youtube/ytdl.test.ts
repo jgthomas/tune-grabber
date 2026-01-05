@@ -19,6 +19,7 @@ describe('downloadVideoAndExtractAudioToMp3', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (validateUrlString as jest.Mock).mockReturnValue({ isValid: true, message: 'Valid' });
   });
 
   it('validates the URL, downloads audio as mp3, and reports progress', async () => {
@@ -54,9 +55,9 @@ describe('downloadVideoAndExtractAudioToMp3', () => {
   });
 
   it('propogates an error if validation fails (caller handles it)', async () => {
-    const error = new Error('Invalid URL');
-    (validateUrlString as jest.Mock).mockImplementation(() => {
-      throw error;
+    (validateUrlString as jest.Mock).mockReturnValue({
+      isValid: false,
+      message: 'Invalid URL',
     });
 
     // 🚀 CRITICAL: Use .rejects to catch the error thrown by the function

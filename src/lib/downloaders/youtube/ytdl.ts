@@ -10,7 +10,10 @@ export const YOUTUBE_DOMAINS = [
 ];
 
 export async function downloadVideoAndExtractAudioToMp3(yturl: string, fullPath: string) {
-  validateUrlString(yturl, { permittedHosts: YOUTUBE_DOMAINS });
+  const validation = validateUrlString(yturl, { permittedHosts: YOUTUBE_DOMAINS });
+  if (!validation.isValid) {
+    throw new Error(validation.message);
+  }
 
   const output = await ytdlp.downloadAsync(yturl, {
     format: {
@@ -29,7 +32,10 @@ export async function downloadVideoAndExtractAudioToMp3(yturl: string, fullPath:
 }
 
 export async function getVideoTitle(yturl: string): Promise<string> {
-  validateUrlString(yturl, { permittedHosts: YOUTUBE_DOMAINS });
+  const validation = validateUrlString(yturl, { permittedHosts: YOUTUBE_DOMAINS });
+  if (!validation.isValid) {
+    throw new Error(validation.message);
+  }
 
   try {
     const result = await ytdlp.execAsync(yturl, {
