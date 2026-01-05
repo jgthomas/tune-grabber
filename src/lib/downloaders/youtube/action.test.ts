@@ -112,7 +112,7 @@ describe('downloadAction', () => {
 
     expect(result).toEqual({
       success: false,
-      message: 'Failed to download: YTDL Error',
+      message: 'YTDL Error',
     });
 
     consoleErrorSpy.mockRestore();
@@ -141,7 +141,7 @@ describe('downloadAction', () => {
 
     expect(result).toEqual({
       success: false,
-      message: 'Failed to download: An unexpected error occurred',
+      message: 'Failed to get video title',
     });
 
     consoleErrorSpy.mockRestore();
