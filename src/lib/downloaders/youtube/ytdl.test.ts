@@ -27,7 +27,7 @@ describe('downloadVideoAndExtractAudioToMp3', () => {
 
     const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
-    const result = await downloadVideoAndExtractAudioToMp3(validYoutubeUrl, testOutputPath);
+    await downloadVideoAndExtractAudioToMp3(validYoutubeUrl, testOutputPath);
 
     expect(validateUrlString).toHaveBeenCalledWith(validYoutubeUrl, {
       permittedHosts: YOUTUBE_DOMAINS,
@@ -50,32 +50,22 @@ describe('downloadVideoAndExtractAudioToMp3', () => {
     options.onProgress({ percent: 50 });
 
     expect(consoleLogSpy).toHaveBeenCalled();
-    expect(result).toEqual({ success: true, data: 'ok' });
 
     consoleLogSpy.mockRestore();
   });
 
-  it('returns failure object if validation fails', async () => {
+  it('propogates an error if validation fails (caller handles it)', async () => {
     (validateUrlString as jest.Mock).mockReturnValue({
       isValid: false,
       message: 'Invalid URL',
     });
 
-    const result = await downloadVideoAndExtractAudioToMp3('not-a-url', testOutputPath);
-
-    expect(result).toEqual({ success: false, message: 'Invalid URL' });
+    // 🚀 CRITICAL: Use .rejects to catch the error thrown by the function
+    await expect(downloadVideoAndExtractAudioToMp3('not-a-url', testOutputPath)).rejects.toThrow(
+      'Invalid URL',
+    );
 
     // Verify ytdlp was never called because validation failed first
     expect(ytdlp.downloadAsync).not.toHaveBeenCalled();
-  });
-
-  it('returns failure object if download throws', async () => {
-    (ytdlp.downloadAsync as jest.Mock).mockRejectedValue(new Error('Download failed'));
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
-    const result = await downloadVideoAndExtractAudioToMp3(validYoutubeUrl, testOutputPath);
-
-    expect(result).toEqual({ success: false, message: 'Download failed' });
-    consoleErrorSpy.mockRestore();
   });
 });

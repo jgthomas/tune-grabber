@@ -34,19 +34,11 @@ export async function downloadAction(
   try {
     let downloadLink = null;
 
-    const titleResult = await getVideoTitle(yturl);
-    if (!titleResult.success) {
-      return { success: false, message: titleResult.message };
-    }
-    const title = titleResult.data;
-
+    const title = await getVideoTitle(yturl);
     const fileName = `${title}.mp3`;
     fullPath = path.join(tempDir, fileName);
 
-    const downloadResult = await downloadVideoAndExtractAudioToMp3(yturl, fullPath);
-    if (!downloadResult.success) {
-      return { success: false, message: downloadResult.message };
-    }
+    await downloadVideoAndExtractAudioToMp3(yturl, fullPath);
 
     if (s3Service.isConfigured()) {
       console.log('S3 detected, uploading...');

@@ -9,44 +9,32 @@ export const YOUTUBE_DOMAINS = [
   'music.youtube.com',
 ];
 
-export type YtDlResult<T> = { success: true; data: T } | { success: false; message: string };
-
-export async function downloadVideoAndExtractAudioToMp3(
-  yturl: string,
-  fullPath: string,
-): Promise<YtDlResult<unknown>> {
+export async function downloadVideoAndExtractAudioToMp3(yturl: string, fullPath: string) {
   const validation = validateUrlString(yturl, { permittedHosts: YOUTUBE_DOMAINS });
   if (!validation.isValid) {
-    return { success: false, message: validation.message };
+    throw new Error(validation.message);
   }
 
-  try {
-    const output = await ytdlp.downloadAsync(yturl, {
-      format: {
-        filter: 'audioonly',
-        type: 'mp3',
-      },
-      output: fullPath,
-      onProgress: (progress) => {
-        console.log(progress);
-      },
-    });
+  const output = await ytdlp.downloadAsync(yturl, {
+    format: {
+      filter: 'audioonly',
+      type: 'mp3',
+    },
+    output: fullPath,
+    onProgress: (progress) => {
+      console.log(progress);
+    },
+  });
 
-    console.log('Download completed:', output);
-    return { success: true, data: output };
-  } catch (error) {
-    console.error('Download error:', error);
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : 'Download failed',
-    };
-  }
+  console.log('Download completed:', output);
+
+  return output;
 }
 
-export async function getVideoTitle(yturl: string): Promise<YtDlResult<string>> {
+export async function getVideoTitle(yturl: string): Promise<string> {
   const validation = validateUrlString(yturl, { permittedHosts: YOUTUBE_DOMAINS });
   if (!validation.isValid) {
-    return { success: false, message: validation.message };
+    throw new Error(validation.message);
   }
 
   try {
@@ -61,13 +49,9 @@ export async function getVideoTitle(yturl: string): Promise<YtDlResult<string>> 
     console.log('Title result:', result);
 
     // Sanitize the filename by removing invalid characters
-    const sanitizedTitle = result.trim().replace(/[/\\?%*:|"<>]/g, '-');
-    return { success: true, data: sanitizedTitle };
+    return result.trim().replace(/[/\\?%*:|"<>]/g, '-');
   } catch (error) {
     console.error('Error getting video title:', error);
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : 'Failed to get video title',
-    };
+    throw error;
   }
 }
