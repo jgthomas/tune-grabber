@@ -29,7 +29,7 @@ export async function downloadAction(
   }
 
   const tempDir = '/tmp';
-  let fullPath = '';
+  let fullPath: string | null = null;
 
   try {
     let downloadLink = null;
@@ -74,13 +74,16 @@ export async function downloadAction(
     };
   } finally {
     try {
-      if (s3Service.isConfigured()) {
+      if (s3Service.isConfigured() && fullPath) {
         await fs.unlink(fullPath);
         console.log(`Cleaned up temporary file: ${fullPath}`);
       }
       console.log('Running locally so no cleanup needed.');
     } catch (unlinkError) {
-      console.error('Failed to delete temp file:', unlinkError);
+      // Ignore ENOENT (file not found) as it might not have been created yet
+      if ((unlinkError as { code?: string }).code !== 'ENOENT') {
+        console.error('Failed to delete temp file:', unlinkError);
+      }
     }
   }
 }
