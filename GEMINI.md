@@ -157,13 +157,6 @@ While the primary deployment method is through the CI/CD pipeline, manual deploy
 
 ## Agent Workflows
 
-### Git Flow
-
-When performing git operations, adhere to the following branching strategy:
-
-1.  **Branching:** Always branch off the `develop` branch to create feature or bugfix branches. **NEVER** branch off `main`.
-2.  **Merging:** Only merge feature or bugfix branches back into the `develop` branch. **NEVER** merge directly into `main`.
-
 ### Pre-Completion Checks
 
 Before marking a task as complete, always perform the following sequence:
