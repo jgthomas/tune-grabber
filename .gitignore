@@ -62,4 +62,3 @@ terraform/terraform.tfvars
 # Gemini CLI ignores
 .gemini/tmp/
 .gemini/state/
-.env
