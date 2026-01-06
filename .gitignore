@@ -58,3 +58,8 @@ terraform.rc
 
 # Sensitive variable files
 terraform/terraform.tfvars
+
+# Gemini CLI ignores
+.gemini/tmp/
+.gemini/state/
+.env
