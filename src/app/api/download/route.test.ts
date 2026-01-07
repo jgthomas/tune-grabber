@@ -6,6 +6,7 @@ import { NextRequest } from 'next/server';
 import fs from 'fs';
 import { Readable } from 'stream';
 import { finished } from 'stream/promises';
+import { logger } from '@/lib/logger';
 
 // Mock fs
 jest.mock('fs', () => ({
@@ -13,6 +14,14 @@ jest.mock('fs', () => ({
   promises: {
     access: jest.fn(),
     unlink: jest.fn(),
+  },
+}));
+
+// Mock logger
+jest.mock('@/lib/logger', () => ({
+  logger: {
+    error: jest.fn(),
+    info: jest.fn(),
   },
 }));
 
@@ -53,8 +62,6 @@ describe('GET /api/download', () => {
   it('should return 404 if file does not exist', async () => {
     // Mock fs.access to fail
     (fs.promises.access as jest.Mock).mockRejectedValue(new Error('File not found'));
-    // Suppress console.error
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     const mockReq = {
       url: 'http://localhost/api/download?file=test.mp3',
@@ -66,7 +73,10 @@ describe('GET /api/download', () => {
     expect(json.success).toBe(false);
     expect(json.message).toBe('File not found');
 
-    expect(consoleSpy).toHaveBeenCalledWith('File Error:', expect.any(Error));
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({ err: expect.any(Error), fileName: 'test.mp3' }),
+      'File Error in API',
+    );
   });
 
   it('should return 200 and file stream if file exists', async () => {

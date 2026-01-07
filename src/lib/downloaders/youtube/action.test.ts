@@ -1,6 +1,7 @@
 import { downloadAction } from './action';
 import ytdlp from '@/lib/downloaders/youtube/ytdlp-wrapper';
 import { validateUrlString } from '@/lib/validators/url';
+import { logger } from '@/lib/logger';
 
 jest.mock('@/lib/downloaders/youtube/ytdlp-wrapper', () => ({
   __esModule: true,
@@ -12,6 +13,14 @@ jest.mock('@/lib/downloaders/youtube/ytdlp-wrapper', () => ({
 
 jest.mock('@/lib/validators/url', () => ({
   validateUrlString: jest.fn(),
+}));
+
+jest.mock('@/lib/logger', () => ({
+  logger: {
+    info: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+  },
 }));
 
 describe('downloadAction', () => {
@@ -60,8 +69,6 @@ describe('downloadAction', () => {
 
     (ytdlp.downloadAsync as jest.Mock).mockResolvedValue('ok');
 
-    const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-
     const result = await downloadAction(null, formData);
 
     // It is called first with just the URL (in action.ts)
@@ -91,8 +98,6 @@ describe('downloadAction', () => {
       message: 'Download finished (Local mode: check /tmp)',
       url: expect.stringMatching(/^\/api\/download\?file=/),
     });
-
-    consoleLogSpy.mockRestore();
   });
 
   it('returns a failure state when ytdl throws an Error', async () => {
@@ -106,8 +111,6 @@ describe('downloadAction', () => {
       throw new Error('YTDL Error');
     });
 
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
     const result = await downloadAction(null, formData);
 
     expect(result).toEqual({
@@ -115,7 +118,10 @@ describe('downloadAction', () => {
       message: 'Failed to download: YTDL Error',
     });
 
-    consoleErrorSpy.mockRestore();
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({ err: expect.any(Error) }),
+      'Server Action Error',
+    );
   });
 
   it('returns a generic failure message when a non-Error is thrown', async () => {
@@ -135,8 +141,6 @@ describe('downloadAction', () => {
       throw 'boom';
     });
 
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
     const result = await downloadAction(null, formData);
 
     expect(result).toEqual({
@@ -144,6 +148,6 @@ describe('downloadAction', () => {
       message: 'Failed to download: An unexpected error occurred',
     });
 
-    consoleErrorSpy.mockRestore();
+    expect(logger.error).toHaveBeenCalled();
   });
 });

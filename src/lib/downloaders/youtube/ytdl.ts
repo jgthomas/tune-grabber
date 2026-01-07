@@ -1,5 +1,6 @@
 import ytdlp from './ytdlp-wrapper';
 import { validateUrlString } from '@/lib/validators/url';
+import { logger } from '@/lib/logger';
 
 export const YOUTUBE_DOMAINS = [
   'youtube.com',
@@ -22,11 +23,11 @@ export async function downloadVideoAndExtractAudioToMp3(yturl: string, fullPath:
     },
     output: fullPath,
     onProgress: (progress) => {
-      console.log(progress);
+      logger.debug({ progress }, 'Download progress');
     },
   });
 
-  console.log('Download completed:', output);
+  logger.info({ output }, 'Download completed');
 
   return output;
 }
@@ -42,16 +43,16 @@ export async function getVideoTitle(yturl: string): Promise<string> {
       print: '%(title)s',
       noDownload: true,
       onData: (data) => {
-        console.log('Raw data:', data);
+        logger.debug({ data }, 'Raw title data');
       },
     });
 
-    console.log('Title result:', result);
+    logger.info({ result }, 'Title result');
 
     // Sanitize the filename by removing invalid characters
     return result.trim().replace(/[/\\?%*:|"<>]/g, '-');
   } catch (error) {
-    console.error('Error getting video title:', error);
+    logger.error({ err: error }, 'Error getting video title');
     throw error;
   }
 }

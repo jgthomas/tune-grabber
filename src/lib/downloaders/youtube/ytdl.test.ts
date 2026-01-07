@@ -1,6 +1,7 @@
 import { downloadVideoAndExtractAudioToMp3, YOUTUBE_DOMAINS } from './ytdl';
 import ytdlp from '@/lib/downloaders/youtube/ytdlp-wrapper';
 import { validateUrlString } from '@/lib/validators/url';
+import { logger } from '@/lib/logger';
 
 jest.mock('./ytdlp-wrapper', () => ({
   __esModule: true,
@@ -11,6 +12,13 @@ jest.mock('./ytdlp-wrapper', () => ({
 
 jest.mock('@/lib/validators/url', () => ({
   validateUrlString: jest.fn(),
+}));
+
+jest.mock('@/lib/logger', () => ({
+  logger: {
+    info: jest.fn(),
+    debug: jest.fn(),
+  },
 }));
 
 describe('downloadVideoAndExtractAudioToMp3', () => {
@@ -24,8 +32,6 @@ describe('downloadVideoAndExtractAudioToMp3', () => {
 
   it('validates the URL, downloads audio as mp3, and reports progress', async () => {
     (ytdlp.downloadAsync as jest.Mock).mockResolvedValue('ok');
-
-    const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
     await downloadVideoAndExtractAudioToMp3(validYoutubeUrl, testOutputPath);
 
@@ -49,9 +55,8 @@ describe('downloadVideoAndExtractAudioToMp3', () => {
     const [, options] = (ytdlp.downloadAsync as jest.Mock).mock.calls[0];
     options.onProgress({ percent: 50 });
 
-    expect(consoleLogSpy).toHaveBeenCalled();
-
-    consoleLogSpy.mockRestore();
+    expect(logger.debug).toHaveBeenCalledWith({ progress: { percent: 50 } }, 'Download progress');
+    expect(logger.info).toHaveBeenCalledWith({ output: 'ok' }, 'Download completed');
   });
 
   it('propogates an error if validation fails (caller handles it)', async () => {

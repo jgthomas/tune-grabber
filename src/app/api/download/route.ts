@@ -3,6 +3,7 @@ import { createReadStream, promises as fs } from 'fs';
 import { Readable } from 'stream';
 import { finished } from 'stream/promises';
 import path from 'path';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error('File Error:', error);
+    logger.error({ err: error, fileName }, 'File Error in API');
 
     return NextResponse.json(
       {

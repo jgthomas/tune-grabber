@@ -5,6 +5,7 @@ import { promises as fs } from 'fs';
 import { downloadVideoAndExtractAudioToMp3, getVideoTitle } from './ytdl';
 import { s3Service } from '@/lib/aws/s3-service';
 import { validateUrlString } from '@/lib/validators/url';
+import { logger } from '@/lib/logger';
 
 export type DownloadState = {
   success: boolean;
@@ -41,7 +42,7 @@ export async function downloadAction(
     await downloadVideoAndExtractAudioToMp3(yturl, fullPath);
 
     if (s3Service.isConfigured()) {
-      console.log('S3 detected, uploading...');
+      logger.info('S3 detected, uploading...');
       await s3Service.uploadFile(fullPath, fileName);
       downloadLink = await s3Service.getDownloadLink(fileName);
     } else {
@@ -56,7 +57,7 @@ export async function downloadAction(
       url: downloadLink,
     };
   } catch (error) {
-    console.error('Server Action Error:', error);
+    logger.error({ err: error }, 'Server Action Error');
 
     const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
 
@@ -68,11 +69,11 @@ export async function downloadAction(
     try {
       if (s3Service.isConfigured()) {
         await fs.unlink(fullPath);
-        console.log(`Cleaned up temporary file: ${fullPath}`);
+        logger.info({ file: fullPath }, 'Cleaned up temporary file');
       }
-      console.log('Running locally so no cleanup needed.');
+      logger.info('Running locally so no cleanup needed.');
     } catch (unlinkError) {
-      console.error('Failed to delete temp file:', unlinkError);
+      logger.error({ err: unlinkError }, 'Failed to delete temp file');
     }
   }
 }
