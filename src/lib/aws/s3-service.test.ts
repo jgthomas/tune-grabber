@@ -3,6 +3,7 @@ import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import fs from 'fs';
 import { config } from '@/lib/config';
+import { logger } from '@/lib/logger';
 
 // Mock Config
 jest.mock('@/lib/config', () => ({
@@ -11,6 +12,15 @@ jest.mock('@/lib/config', () => ({
       region: 'us-east-1',
       s3BucketName: 'test-bucket',
     },
+  },
+}));
+
+// Mock Logger
+jest.mock('@/lib/logger', () => ({
+  logger: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
   },
 }));
 
@@ -63,10 +73,11 @@ describe('s3Service', () => {
   });
 
   describe('uploadFile', () => {
-    it('should return null if not configured', async () => {
+    it('should return null and warn if not configured', async () => {
       config.aws.s3BucketName = undefined;
       const result = await s3Service.uploadFile('path/to/file', 'file.mp3');
       expect(result).toBeNull();
+      expect(logger.warn).toHaveBeenCalledWith('Attempted S3 upload but service is not configured');
       expect(fs.readFileSync).not.toHaveBeenCalled();
     });
 
@@ -78,6 +89,11 @@ describe('s3Service', () => {
 
       const result = await s3Service.uploadFile('path/to/file', 'file.mp3');
 
+      expect(logger.info).toHaveBeenCalledWith(
+        { fileName: 'file.mp3', bucket: 'test-bucket' },
+        'Starting S3 upload',
+      );
+
       expect(fs.readFileSync).toHaveBeenCalledWith('path/to/file');
       expect(PutObjectCommand).toHaveBeenCalledWith({
         Bucket: 'test-bucket',
@@ -87,6 +103,7 @@ describe('s3Service', () => {
       });
 
       expect(mockSend).toHaveBeenCalledWith(expect.any(PutObjectCommand));
+      expect(logger.debug).toHaveBeenCalledWith({ fileName: 'file.mp3' }, 'S3 upload completed');
       expect(result).toEqual({ ETag: 'some-etag' });
     });
 
@@ -120,10 +137,13 @@ describe('s3Service', () => {
   });
 
   describe('getDownloadLink', () => {
-    it('should return null if not configured', async () => {
+    it('should return null and warn if not configured', async () => {
       config.aws.s3BucketName = undefined;
       const result = await s3Service.getDownloadLink('file.mp3');
       expect(result).toBeNull();
+      expect(logger.warn).toHaveBeenCalledWith(
+        'Attempted to get S3 link but service is not configured',
+      );
       expect(getSignedUrl).not.toHaveBeenCalled();
     });
 
@@ -131,6 +151,11 @@ describe('s3Service', () => {
       (getSignedUrl as jest.Mock).mockResolvedValue('https://s3.aws.com/signed-url');
 
       const result = await s3Service.getDownloadLink('file.mp3');
+
+      expect(logger.info).toHaveBeenCalledWith(
+        { fileName: 'file.mp3' },
+        'Generating presigned URL',
+      );
 
       expect(GetObjectCommand).toHaveBeenCalledWith({
         Bucket: 'test-bucket',
