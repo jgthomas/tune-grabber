@@ -1,5 +1,9 @@
 import { logger } from '@/lib/logger';
 
+const progressTracker = (progress: unknown) => {
+  logger.debug({ progress }, 'Download progress');
+};
+
 export const getMp3DownloadOptions = (fullPath: string) =>
   ({
     format: {
@@ -7,7 +11,5 @@ export const getMp3DownloadOptions = (fullPath: string) =>
       type: 'mp3',
     },
     output: fullPath,
-    onProgress: (progress: unknown) => {
-      logger.debug({ progress }, 'Download progress');
-    },
+    onProgress: progressTracker,
   }) as const;
