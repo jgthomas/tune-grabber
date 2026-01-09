@@ -1,6 +1,7 @@
 import ytdlp from './ytdlp-wrapper';
 import { validateUrlString } from '@/lib/validators/url';
 import { logger } from '@/lib/logger';
+import { mp3Option } from './options';
 
 export const YOUTUBE_DOMAINS = [
   'youtube.com',
@@ -17,10 +18,7 @@ export async function downloadVideoAndExtractAudioToMp3(yturl: string, fullPath:
   }
 
   const output = await ytdlp.downloadAsync(yturl, {
-    format: {
-      filter: 'audioonly',
-      type: 'mp3',
-    },
+    ...mp3Option,
     output: fullPath,
     onProgress: (progress) => {
       logger.debug({ progress }, 'Download progress');
