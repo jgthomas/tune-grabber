@@ -1,7 +1,7 @@
 import ytdlp from './ytdlp-wrapper';
 import { validateUrlString } from '@/lib/validators/url';
 import { logger } from '@/lib/logger';
-import { mp3Option } from './options';
+import { getMp3DownloadOptions } from './options';
 
 export const YOUTUBE_DOMAINS = [
   'youtube.com',
@@ -17,13 +17,7 @@ export async function downloadVideoAndExtractAudioToMp3(yturl: string, fullPath:
     throw new Error(validation.message);
   }
 
-  const output = await ytdlp.downloadAsync(yturl, {
-    ...mp3Option,
-    output: fullPath,
-    onProgress: (progress) => {
-      logger.debug({ progress }, 'Download progress');
-    },
-  });
+  const output = await ytdlp.downloadAsync(yturl, getMp3DownloadOptions(fullPath));
 
   logger.info({ output }, 'Download completed');
 
