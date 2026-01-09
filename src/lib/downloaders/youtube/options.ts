@@ -1,14 +1,16 @@
 import { logger } from '@/lib/logger';
 
+export type AudioFormat = 'mp3' | 'aac' | 'flac' | 'm4a' | 'opus' | 'vorbis' | 'wav';
+
 const progressTracker = (progress: unknown) => {
   logger.debug({ progress }, 'Download progress');
 };
 
-export const getMp3DownloadOptions = (fullPath: string) =>
+export const getAudioDownloadOptions = (fullPath: string, format: AudioFormat = 'mp3') =>
   ({
     format: {
       filter: 'audioonly',
-      type: 'mp3',
+      type: format,
     },
     output: fullPath,
     onProgress: progressTracker,
