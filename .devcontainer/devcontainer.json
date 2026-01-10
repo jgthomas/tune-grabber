@@ -1,0 +1,25 @@
+{
+  "name": "tune-grabber",
+  "build": {
+    "dockerfile": "../Dockerfile",
+    "context": ".."
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "ms-vscode.vscode-typescript-next",
+        "bradlc.vscode-tailwindcss"
+      ]
+    }
+  },
+  "forwardPorts": [3000],
+  "containerEnv": {
+    "NODE_ENV": "development",
+    "YT_DLP_PATH": "/usr/local/bin/yt-dlp",
+    "FFMPEG_PATH": "/usr/bin/ffmpeg"
+  },
+  "remoteUser": "root",
+  "postCreateCommand": "yarn install"
+}
