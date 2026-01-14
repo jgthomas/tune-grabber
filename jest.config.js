@@ -23,6 +23,7 @@ const customJestConfig = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
+  modulePathIgnorePatterns: ['<rootDir>/.next/'],
   /*coverageThreshold: {
     global: {
       branches: 95,
