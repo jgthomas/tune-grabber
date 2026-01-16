@@ -8,6 +8,7 @@ jest.mock('@/lib/downloaders/youtube/ytdlp-wrapper', () => ({
   default: {
     downloadAsync: jest.fn(),
     execAsync: jest.fn(),
+    getInfoAsync: jest.fn(),
   },
 }));
 
@@ -57,7 +58,7 @@ describe('downloadAction', () => {
       message: 'Invalid URL format',
     });
     // Should verify ytdlp was NOT called
-    expect(ytdlp.execAsync).not.toHaveBeenCalled();
+    expect(ytdlp.getInfoAsync).not.toHaveBeenCalled();
     expect(ytdlp.downloadAsync).not.toHaveBeenCalled();
   });
 
@@ -65,7 +66,7 @@ describe('downloadAction', () => {
     const formData = new FormData();
     formData.set('urlInput', 'https://www.youtube.com/watch?v=abc123');
 
-    (ytdlp.execAsync as jest.Mock).mockResolvedValue('TestVideoTitle');
+    (ytdlp.getInfoAsync as jest.Mock).mockResolvedValue({ title: 'TestVideoTitle' });
 
     (ytdlp.downloadAsync as jest.Mock).mockResolvedValue('ok');
 
@@ -107,7 +108,7 @@ describe('downloadAction', () => {
     // Validation passes
     (validateUrlString as jest.Mock).mockReturnValue({ isValid: true });
 
-    (ytdlp.execAsync as jest.Mock).mockImplementation(() => {
+    (ytdlp.getInfoAsync as jest.Mock).mockImplementation(() => {
       throw new Error('YTDL Error');
     });
 
@@ -131,13 +132,8 @@ describe('downloadAction', () => {
     // Validation passes
     (validateUrlString as jest.Mock).mockReturnValue({ isValid: true });
 
-    // execAsync return a title
-    (ytdlp.execAsync as jest.Mock).mockImplementation(() => {
-      throw 'TestVideoTitle';
-    });
-
-    // Make downloadAsync throw a string instead of Error
-    (ytdlp.downloadAsync as jest.Mock).mockImplementation(() => {
+    // getInfoAsync throws
+    (ytdlp.getInfoAsync as jest.Mock).mockImplementation(() => {
       throw 'boom';
     });
 

@@ -1,3 +1,4 @@
+import { VideoInfo, PlaylistInfo, YtDlp } from 'ytdlp-nodejs';
 import ytdlp from './ytdlp-wrapper';
 import { validateUrlString } from '@/lib/validators/url';
 import { logger } from '@/lib/logger';
@@ -24,27 +25,23 @@ export async function downloadVideoAndExtractAudioToMp3(yturl: string, fullPath:
   return output;
 }
 
-export async function getVideoTitle(yturl: string): Promise<string> {
+type InfoOptions = Parameters<YtDlp['getInfoAsync']>[1];
+
+export async function getVideoInfo(
+  yturl: string,
+  options?: InfoOptions,
+): Promise<VideoInfo | PlaylistInfo> {
   const validation = validateUrlString(yturl, { permittedHosts: YOUTUBE_DOMAINS });
   if (!validation.isValid) {
     throw new Error(validation.message);
   }
 
   try {
-    const result = await ytdlp.execAsync(yturl, {
-      print: '%(title)s',
-      noDownload: true,
-      onData: (data) => {
-        logger.debug({ data }, 'Raw title data');
-      },
-    });
-
-    logger.info({ result }, 'Title result');
-
-    // Sanitize the filename by removing invalid characters
-    return result.trim().replace(/[/\\?%*:|"<>]/g, '-');
+    const result = await ytdlp.getInfoAsync(yturl, options);
+    logger.info({ result }, 'Video info result');
+    return result;
   } catch (error) {
-    logger.error({ err: error }, 'Error getting video title');
+    logger.error({ err: error }, 'Error getting video info');
     throw error;
   }
 }

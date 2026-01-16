@@ -2,7 +2,8 @@
 
 import path from 'path';
 import { promises as fs } from 'fs';
-import { downloadVideoAndExtractAudioToMp3, getVideoTitle } from './ytdl';
+import { downloadVideoAndExtractAudioToMp3, getVideoInfo } from './ytdl';
+import { sanitizeTitle } from './utils';
 import { s3Service } from '@/lib/aws/s3-service';
 import { validateUrlString } from '@/lib/validators/url';
 import { logger } from '@/lib/logger';
@@ -35,7 +36,8 @@ export async function downloadAction(
   try {
     let downloadLink = null;
 
-    const title = await getVideoTitle(yturl);
+    const videoInfo = await getVideoInfo(yturl);
+    const title = sanitizeTitle(videoInfo);
     const fileName = `${title}.mp3`;
     fullPath = path.join(tempDir, fileName);
 
