@@ -6,7 +6,7 @@ interface DownloadLinkProps {
 
 export function DownloadLink({ url }: DownloadLinkProps) {
   return (
-    <div className="mt-6 p-6 border border-cyan-200/50 dark:border-cyan-800/50 rounded-xl bg-gradient-to-b from-cyan-50/50 to-cyan-100/30 dark:from-cyan-900/20 dark:to-cyan-900/10 backdrop-blur-sm flex flex-col items-center gap-4 text-center animate-in zoom-in-95 duration-300">
+    <div className="mt-6 p-6 border border-cyan-200/50 dark:border-cyan-800/50 rounded-xl bg-linear-to-b from-cyan-50/50 to-cyan-100/30 dark:from-cyan-900/20 dark:to-cyan-900/10 backdrop-blur-sm flex flex-col items-center gap-4 text-center animate-in zoom-in-95 duration-300">
       <div className="rounded-full bg-cyan-100 dark:bg-cyan-900/50 p-3">
         <Download className="h-6 w-6 text-cyan-600 dark:text-cyan-400" />
       </div>
