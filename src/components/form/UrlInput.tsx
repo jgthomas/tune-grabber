@@ -1,11 +1,8 @@
 import { Link } from 'lucide-react';
+import { InputHTMLAttributes } from 'react';
 
-interface UrlInputProps {
-  id?: string;
-  name?: string;
+interface UrlInputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
-  placeholder?: string;
-  required?: boolean;
 }
 
 export function UrlInput({
@@ -14,6 +11,8 @@ export function UrlInput({
   label = 'YouTube URL',
   placeholder = 'https://youtube.com/watch?v=...',
   required = true,
+  className,
+  ...props
 }: UrlInputProps) {
   return (
     <div className="space-y-2">
@@ -30,9 +29,10 @@ export function UrlInput({
           type="url"
           placeholder={placeholder}
           required={required}
-          className="block w-full rounded-lg border-zinc-300 bg-white py-3 pl-10 pr-4 text-zinc-900 shadow-sm ring-1 ring-inset ring-zinc-300 placeholder:text-zinc-400 focus:ring-2 focus:ring-inset focus:ring-cyan-500 focus:border-cyan-500 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-100 dark:ring-zinc-700 dark:placeholder:text-zinc-500 dark:focus:ring-cyan-400 transition-all"
+          className={`block w-full rounded-lg border-zinc-300 bg-white py-3 pl-10 pr-4 text-zinc-900 shadow-sm ring-1 ring-inset ring-zinc-300 placeholder:text-zinc-400 focus:ring-2 focus:ring-inset focus:ring-cyan-500 focus:border-cyan-500 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-100 dark:ring-zinc-700 dark:placeholder:text-zinc-500 dark:focus:ring-cyan-400 transition-all ${className || ''}`}
           pattern="https?://.+"
           title="Please enter a valid URL starting with http:// or https://"
+          {...props}
         />
       </div>
     </div>
