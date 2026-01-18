@@ -25,7 +25,7 @@ export async function downloadVideoAndExtractAudioToMp3(yturl: string, fullPath:
   return output;
 }
 
-type InfoOptions = Parameters<YtDlp['getInfoAsync']>[1];
+export type InfoOptions = Parameters<YtDlp['getInfoAsync']>[1];
 
 export async function getVideoInfo(
   yturl: string,
