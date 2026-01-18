@@ -2,7 +2,7 @@
 
 import path from 'path';
 import { promises as fs } from 'fs';
-import { downloadVideoAndExtractAudioToMp3, getVideoInfo } from './ytdl';
+import { downloadVideoAndExtractAudioToMp3 } from './ytdl';
 import { sanitizeTitle } from './utils';
 import { s3Service } from '@/lib/aws/s3-service';
 import { validateUrlString } from '@/lib/validators/url';
@@ -20,9 +20,14 @@ export async function downloadAction(
   formData: FormData,
 ): Promise<DownloadState> {
   const yturl = formData.get('urlInput');
+  const titleInput = formData.get('title');
 
   if (!yturl || typeof yturl !== 'string') {
     return { success: false, message: 'Please enter a valid URL.' };
+  }
+
+  if (!titleInput || typeof titleInput !== 'string') {
+    return { success: false, message: 'Missing video title.' };
   }
 
   const validation = validateUrlString(yturl);
@@ -36,8 +41,7 @@ export async function downloadAction(
   try {
     let downloadLink = null;
 
-    const videoInfo = await getVideoInfo(yturl);
-    const title = sanitizeTitle(videoInfo);
+    const title = sanitizeTitle(titleInput);
     const fileName = `${title}.mp3`;
     fullPath = path.join(tempDir, fileName);
 

@@ -45,6 +45,7 @@ describe('downloadAction', () => {
   it('returns an error when general URL validation fails', async () => {
     const formData = new FormData();
     formData.set('urlInput', 'invalid-url');
+    formData.set('title', 'Some Title');
 
     (validateUrlString as jest.Mock).mockReturnValue({
       isValid: false,
@@ -65,8 +66,7 @@ describe('downloadAction', () => {
   it('downloads audio and returns success state', async () => {
     const formData = new FormData();
     formData.set('urlInput', 'https://www.youtube.com/watch?v=abc123');
-
-    (ytdlp.getInfoAsync as jest.Mock).mockResolvedValue({ title: 'TestVideoTitle' });
+    formData.set('title', 'TestVideoTitle');
 
     (ytdlp.downloadAsync as jest.Mock).mockResolvedValue('ok');
 
@@ -75,7 +75,7 @@ describe('downloadAction', () => {
     // It is called first with just the URL (in action.ts)
     expect(validateUrlString).toHaveBeenNthCalledWith(1, 'https://www.youtube.com/watch?v=abc123');
 
-    // It is called again inside getVideoTitle/downloadVideo (in ytdl.ts) with options
+    // It is called again inside downloadVideo (in ytdl.ts) with options
     // We can check that too if we want, but checking the first one confirms our change.
 
     expect(ytdlp.downloadAsync).toHaveBeenCalledWith(
@@ -104,11 +104,12 @@ describe('downloadAction', () => {
   it('returns a failure state when ytdl throws an Error', async () => {
     const formData = new FormData();
     formData.set('urlInput', 'https://www.youtube.com/watch?v=fail');
+    formData.set('title', 'TestVideoTitle');
 
     // Validation passes
     (validateUrlString as jest.Mock).mockReturnValue({ isValid: true });
 
-    (ytdlp.getInfoAsync as jest.Mock).mockImplementation(() => {
+    (ytdlp.downloadAsync as jest.Mock).mockImplementation(() => {
       throw new Error('YTDL Error');
     });
 
@@ -128,12 +129,13 @@ describe('downloadAction', () => {
   it('returns a generic failure message when a non-Error is thrown', async () => {
     const formData = new FormData();
     formData.set('urlInput', 'https://www.youtube.com/watch?v=abc123');
+    formData.set('title', 'TestVideoTitle');
 
     // Validation passes
     (validateUrlString as jest.Mock).mockReturnValue({ isValid: true });
 
-    // getInfoAsync throws
-    (ytdlp.getInfoAsync as jest.Mock).mockImplementation(() => {
+    // downloadAsync throws
+    (ytdlp.downloadAsync as jest.Mock).mockImplementation(() => {
       throw 'boom';
     });
 

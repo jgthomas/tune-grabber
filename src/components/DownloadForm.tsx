@@ -57,6 +57,7 @@ export default function DownloadForm() {
     <div className="w-full">
       <form ref={formRef} action={formAction} className="flex flex-col gap-5">
         <UrlInput onChange={handleUrlChange} />
+        <input type="hidden" name="title" value={videoInfo?.title || ''} />
 
         {/* Video Info Display */}
         <div className="min-h-5">
