@@ -1,4 +1,5 @@
-import { getVideoInfo, YOUTUBE_DOMAINS, type InfoOptions } from './ytdl';
+import { getVideoInfo, type InfoOptions } from './ytdl';
+import { YOUTUBE_DOMAINS } from '@/lib/domains/youtube';
 import ytdlp from '@/lib/downloaders/youtube/ytdlp-wrapper';
 import { validateUrlString } from '@/lib/validators/url';
 import { logger } from '@/lib/logger';

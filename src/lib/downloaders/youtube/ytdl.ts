@@ -3,14 +3,7 @@ import ytdlp from './ytdlp-wrapper';
 import { validateUrlString } from '@/lib/validators/url';
 import { logger } from '@/lib/logger';
 import { getAudioDownloadOptions } from './options';
-
-export const YOUTUBE_DOMAINS = [
-  'youtube.com',
-  'www.youtube.com',
-  'youtu.be',
-  'm.youtube.com',
-  'music.youtube.com',
-];
+import { YOUTUBE_DOMAINS } from '@/lib/domains/youtube';
 
 export async function downloadVideoAndExtractAudioToMp3(yturl: string, fullPath: string) {
   const validation = validateUrlString(yturl, { permittedHosts: YOUTUBE_DOMAINS });
