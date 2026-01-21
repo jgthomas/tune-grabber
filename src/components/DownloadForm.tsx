@@ -15,14 +15,76 @@ export default function DownloadForm() {
 
   const [videoInfo, setVideoInfo] = useState<VideoInfoResult | null>(null);
   const [isValidating, setIsValidating] = useState(false);
-  const debounceTimer = useRef<NodeJS.Timeout>(null);
+  const [isPolling, setIsPolling] = useState(false);
+  const [pollStatus, setPollStatus] = useState<string>('');
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
 
+  const debounceTimer = useRef<NodeJS.Timeout>(null);
+  const pollTimer = useRef<NodeJS.Timeout>(null);
+
+  // Handle Action State Changes
   useEffect(() => {
-    if (state?.success && formRef.current) {
-      formRef.current.reset();
-      setVideoInfo(null);
+    if (state?.success) {
+      // Sync Mode or Async Mode started
+      if (state.jobId) {
+        // Start Polling
+        setIsPolling(true);
+        setPollStatus('Job submitted. Waiting for processor...');
+        setDownloadUrl(null);
+      } else if (state.url) {
+        // Direct Sync Success (Fallback)
+        setDownloadUrl(state.url);
+        formRef.current?.reset();
+        setVideoInfo(null);
+      }
+    } else if (state?.success === false) {
+      // Error
+      setIsPolling(false);
+      setPollStatus('');
     }
   }, [state]);
+
+  // Polling Logic
+  useEffect(() => {
+    if (!isPolling || !state?.jobId) return;
+
+    const checkStatus = async () => {
+      try {
+        const res = await fetch(`/api/status?jobId=${state.jobId}`);
+        const data = await res.json();
+
+        if (data.success) {
+          if (data.status === 'COMPLETED') {
+            setIsPolling(false);
+            setPollStatus('Complete!');
+            setDownloadUrl(data.downloadUrl);
+            formRef.current?.reset();
+            setVideoInfo(null);
+          } else if (data.status === 'FAILED') {
+            setIsPolling(false);
+            setPollStatus(`Failed: ${data.error || 'Unknown error'}`);
+          } else {
+            setPollStatus(`Status: ${data.status}...`);
+          }
+        } else {
+          // API Error?
+          console.warn('Status check failed:', data.message);
+        }
+      } catch (err) {
+        console.error('Polling error', err);
+      }
+    };
+
+    // Initial check
+    checkStatus();
+
+    // Poll every 3 seconds
+    pollTimer.current = setInterval(checkStatus, 3000);
+
+    return () => {
+      if (pollTimer.current) clearInterval(pollTimer.current);
+    };
+  }, [isPolling, state?.jobId]);
 
   const handleUrlChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const url = e.target.value;
@@ -32,6 +94,7 @@ export default function DownloadForm() {
     }
 
     setVideoInfo(null); // Reset info on change
+    setDownloadUrl(null); // Reset previous download
 
     if (!url || !url.startsWith('http')) {
       setIsValidating(false);
@@ -88,14 +151,25 @@ export default function DownloadForm() {
         </div>
 
         <SubmitButton
-          pendingText="Processing..."
-          defaultText="Download Audio"
-          disabled={!videoInfo || !!videoInfo.error || isValidating}
+          pendingText="Submitting..."
+          defaultText={isPolling ? 'Processing Job...' : 'Download Audio'}
+          disabled={!videoInfo || !!videoInfo.error || isValidating || isPolling}
         />
 
-        {state && <FormAlert success={state.success} message={state.message} />}
+        {/* Status / Alert Area */}
+        {state && !isPolling && !downloadUrl && (
+          <FormAlert success={state.success} message={state.message} />
+        )}
 
-        {state?.success && state.url && <DownloadLink url={state.url} />}
+        {isPolling && (
+          <div className="rounded-md bg-blue-50 dark:bg-blue-900/30 p-4 border border-blue-200 dark:border-blue-800 flex items-center gap-3">
+            <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+            <span className="text-sm text-blue-700 dark:text-blue-300">{pollStatus}</span>
+          </div>
+        )}
+
+        {/* Final Download Link */}
+        {downloadUrl && <DownloadLink url={downloadUrl} />}
       </form>
     </div>
   );

@@ -2,9 +2,13 @@
 
 import path from 'path';
 import { promises as fs } from 'fs';
+import { randomUUID } from 'crypto';
 import { downloadVideoAndExtractAudioToMp3 } from './ytdl';
 import { sanitizeTitle } from './utils';
 import { s3Service } from '@/lib/aws/s3-service';
+import { createJob } from '@/lib/aws/dynamo';
+import { sendJob } from '@/lib/aws/sqs';
+import { config } from '@/lib/config';
 import { validateUrlString } from '@/lib/validators/url';
 import { logger } from '@/lib/logger';
 
@@ -13,6 +17,7 @@ export type DownloadState = {
   message: string;
   progress?: number;
   url?: string | null;
+  jobId?: string | null;
 } | null;
 
 export async function downloadAction(
@@ -35,13 +40,52 @@ export async function downloadAction(
     return { success: false, message: validation.message };
   }
 
+  const title = sanitizeTitle(titleInput);
+
+  // --- ASYNC MODE (SQS + DynamoDB) ---
+  if (config.aws.sqsQueueUrl && config.aws.dynamodbTableName) {
+    const jobId = randomUUID();
+
+    try {
+      // 1. Create Job Record
+      await createJob({
+        JobId: jobId,
+        Status: 'PENDING',
+        Url: yturl,
+        Title: title,
+        CreatedAt: new Date().toISOString(),
+      });
+
+      // 2. Send to SQS
+      await sendJob({
+        jobId,
+        url: yturl,
+        title,
+      });
+
+      return {
+        success: true,
+        message: 'Job submitted successfully',
+        jobId,
+      };
+    } catch (error) {
+      logger.error({ err: error }, 'Failed to submit async job');
+      return {
+        success: false,
+        message: 'Failed to submit job. Please try again.',
+      };
+    }
+  }
+
+  // --- FALLBACK SYNC MODE (Local / Old Architecture) ---
+  logger.warn('SQS/DynamoDB not configured, falling back to synchronous local processing');
+
   const tempDir = '/tmp';
   let fullPath = '';
 
   try {
     let downloadLink = null;
 
-    const title = sanitizeTitle(titleInput);
     const fileName = `${title}.mp3`;
     fullPath = path.join(tempDir, fileName);
 
