@@ -70,6 +70,45 @@ resource "aws_budgets_budget" "monthly" {
   # This makes the budget monitor ALL costs in the AWS account.
 }
 
+# --- Real-time Operational/Cost Alarms ---
+
+# Alert if SQS queue backs up (Potential stuck worker or infinite loop cost risk)
+resource "aws_cloudwatch_metric_alarm" "sqs_depth" {
+  alarm_name          = "${var.app_name}-sqs-depth-high"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "2"
+  metric_name         = "ApproximateNumberOfMessagesVisible"
+  namespace           = "AWS/SQS"
+  period              = "300" # 5 minutes
+  statistic           = "Average"
+  threshold           = "50" # Alert if > 50 jobs are pending
+  alarm_description   = "Monitor for job backlog which could indicate stuck workers or infinite loops"
+  alarm_actions       = [aws_sns_topic.cost_alerts.arn]
+  ok_actions          = [aws_sns_topic.cost_alerts.arn]
+
+  dimensions = {
+    QueueName = aws_sqs_queue.jobs.name
+  }
+}
+
+# Alert if a message is stuck in the queue for too long
+resource "aws_cloudwatch_metric_alarm" "sqs_age" {
+  alarm_name          = "${var.app_name}-sqs-oldest-message"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "1"
+  metric_name         = "ApproximateAgeOfOldestMessage"
+  namespace           = "AWS/SQS"
+  period              = "300"
+  statistic           = "Maximum"
+  threshold           = "600" # Alert if a job is older than 10 minutes
+  alarm_description   = "Monitor for stuck messages impacting user experience and potential polling costs"
+  alarm_actions       = [aws_sns_topic.cost_alerts.arn]
+
+  dimensions = {
+    QueueName = aws_sqs_queue.jobs.name
+  }
+}
+
 # Outputs
 output "sns_topic_arn" {
   value       = aws_sns_topic.cost_alerts.arn
